@@ -39,8 +39,16 @@ const dbInsert = async (table, rows) => {
   const body = Array.isArray(rows) ? rows : [rows];
   try {
     const res = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:"POST", headers:H(), body:JSON.stringify(body)});
-    return res.ok;
-  } catch(e) { return false; }
+    if (!res.ok) {
+      const errBody = await res.text().catch(()=>"");
+      console.error("dbInsert failed", res.status, errBody);
+      return { ok:false, status:res.status, error:errBody };
+    }
+    return { ok:true };
+  } catch(e) {
+    console.error("dbInsert network error", e);
+    return { ok:false, status:0, error:e.message };
+  }
 };
 
 const dbUpdate = async (table, vals, filters={}) => {
@@ -205,26 +213,44 @@ function PhotoBox({label,hint,required,value,onChange}){
   const camRef = useRef();
   const galRef = useRef();
   const [busy,setBusy]=useState(false);
+  const [err,setErr]=useState(null);
 
   const compressAndSet = (file) => {
+    setErr(null);
+    if (!file.type.startsWith("image/")) {
+      setErr("الملف المختار ليس صورة");
+      return;
+    }
     setBusy(true);
     const reader = new FileReader();
+    reader.onerror = () => { setErr("فشل قراءة الملف"); setBusy(false); };
     reader.onload = (ev) => {
       const img = new Image();
+      img.onerror = () => { setErr("فشل تحميل الصورة — جرب صورة أخرى"); setBusy(false); };
       img.onload = () => {
-        const maxDim = 1000;
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
-          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        try {
+          const maxDim = 1000;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          if (!dataUrl || dataUrl === "data:,") {
+            setErr("فشلت معالجة الصورة، جرب صورة أخرى");
+            setBusy(false);
+            return;
+          }
+          onChange(dataUrl);
+        } catch (e) {
+          setErr("خطأ في معالجة الصورة: " + e.message);
+        } finally {
+          setBusy(false);
         }
-        const canvas = document.createElement("canvas");
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
-        onChange(dataUrl);
-        setBusy(false);
       };
       img.src = ev.target.result;
     };
@@ -243,7 +269,7 @@ function PhotoBox({label,hint,required,value,onChange}){
         {label} {required&&<span style={{color:C.red}}>*</span>}
       </div>
 
-      <div style={{border:`2px dashed ${value?C.green:C.border}`,borderRadius:10,background:C.panel,
+      <div style={{border:`2px dashed ${value?C.green:err?C.red:C.border}`,borderRadius:10,background:C.panel,
         aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
         overflow:"hidden",position:"relative",minHeight:130}}>
         {busy
@@ -251,7 +277,7 @@ function PhotoBox({label,hint,required,value,onChange}){
           : value
             ? <>
                 <img src={value} alt={label} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                <div onClick={()=>onChange(null)}
+                <div onClick={()=>{onChange(null);setErr(null);}}
                   style={{position:"absolute",top:6,left:6,background:"#dc262699",borderRadius:"50%",
                     width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",
                     cursor:"pointer",fontSize:13,color:"#fff",fontWeight:700}}>✕</div>
@@ -260,6 +286,8 @@ function PhotoBox({label,hint,required,value,onChange}){
                 <div style={{color:C.muted,fontSize:11,textAlign:"center",padding:"0 8px"}}>{hint}</div></>
         }
       </div>
+
+      {err&&<div style={{color:C.red,fontSize:11,marginTop:4,textAlign:"center"}}>{err}</div>}
 
       {!value&&!busy&&(
         <div style={{display:"flex",gap:6,marginTop:8}}>
@@ -584,13 +612,13 @@ export default function App(){
 
       {/* Content */}
       <div style={{padding:tab==="messages"?"16px 28px":"26px 28px",maxWidth:tab==="messages"?1400:1200,margin:"0 auto"}}>
-        {tab==="dashboard"     && <DashboardTab myDelegates={myDelegates} accepted={accepted} totalOrders={totalOrders} changeStatus={changeStatus}/>}
+        {tab==="dashboard"     && <DashboardTab myDelegates={myDelegates} accepted={accepted} totalOrders={totalOrders}/>}
         {tab==="upload_doc"    && <UploadDocTab supervisors={supervisors} setDelegates={setDelegates} notify={notify} currentSup={currentUser} addNotifDB={addNotifDB}/>}
-        {tab==="delegates"     && <DelegatesTab myDelegates={myDelegates} delegates={delegates} setDelegates={setDelegates} notify={notify} changeStatus={changeStatus} addNotifDB={addNotifDB}/>}
+        {tab==="delegates"     && <DelegatesTab myDelegates={myDelegates}/>}
         {tab==="orders"        && <OrdersTab delegates={delegates} setDelegates={setDelegates} currentSup={currentUser} notify={notify} myDelegates={myDelegates} addNotifDB={addNotifDB}/>}
         {tab==="messages"      && <MessagingTab currentUser={currentUser} conversations={conversations} setConversations={setConversations} supervisors={supervisors} addNotifDB={addNotifDB}/>}
         {tab==="supervisor"    && <SupervisorTab supervisors={supervisors} setSupervisors={setSupervisors} notify={notify}/>}
-        {tab==="ops_dashboard" && <OpsDashboard delegates={delegates} supervisors={supervisors} changeStatus={changeStatus}/>}
+        {tab==="ops_dashboard" && <OpsDashboard delegates={delegates} setDelegates={setDelegates} supervisors={supervisors} setSupervisors={setSupervisors} changeStatus={changeStatus} notify={notify} addNotifDB={addNotifDB}/>}
       </div>
     </div>
   );
@@ -604,6 +632,7 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
   const [newSupId,setNewSupId]=useState("");
   const [showNew,setShowNew]=useState(false);
   const [sending,setSending]=useState(false);
+  const [autoCreating,setAutoCreating]=useState(false);
   const bottomRef=useRef();
   const inputRef=useRef();
 
@@ -615,6 +644,25 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
   };
   const unreadCount=(conv)=>conv.messages.filter(m=>m.sender_id!==currentUser.id&&!(m.read_by||[]).includes(currentUser.id)).length;
   const totalUnread=conversations.reduce((s,c)=>s+unreadCount(c),0);
+
+  // Supervisor only ever talks to the ops manager — auto-create that single
+  // conversation if it doesn't exist yet, so they never need to search for an ID.
+  useEffect(()=>{
+    if(isOps) return;
+    if(conversations.length>0){
+      if(!activeConvId) setActiveConvId(conversations[0].id);
+      return;
+    }
+    if(autoCreating) return;
+    setAutoCreating(true);
+    (async()=>{
+      const nc={id:genId("CONV"),participants:[currentUser.id,OPS_MANAGER.id]};
+      await dbInsert("conversations",nc);
+      setConversations(prev=>[...prev,{...nc,messages:[]}]);
+      setActiveConvId(nc.id);
+      setAutoCreating(false);
+    })();
+  },[isOps,conversations.length]);
 
   useEffect(()=>{
     if(!activeConvId)return;
@@ -664,7 +712,8 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
 
   return(
     <div style={{display:"flex",height:"calc(100vh - 130px)",minHeight:500,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
-      {/* Sidebar */}
+      {/* Sidebar — only shown to ops manager who may have multiple conversations */}
+      {isOps&&(
       <div style={{width:280,flexShrink:0,background:C.panel,borderLeft:`1px solid ${C.border}`,display:"flex",flexDirection:"column"}}>
         <div style={{padding:"16px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
@@ -725,6 +774,7 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
           <div style={{width:8,height:8,borderRadius:"50%",background:C.green}}/>
         </div>
       </div>
+      )}
 
       {/* Chat area */}
       {activeConv?(()=>{
@@ -796,7 +846,7 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
           <div style={{textAlign:"center",color:C.muted}}>
             <div style={{fontSize:56,marginBottom:16}}>💬</div>
             <div style={{fontSize:16,fontWeight:600,color:C.text,marginBottom:8}}>الرسائل الداخلية</div>
-            <div style={{fontSize:13}}>اختر محادثة من القائمة</div>
+            <div style={{fontSize:13}}>{isOps?"اختر محادثة من القائمة":"جاري تجهيز المحادثة مع مدير التشغيل..."}</div>
           </div>
         </div>
       )}
@@ -805,10 +855,86 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
 }
 
 // ══════════════════ OPS DASHBOARD ════════════════════════════════════════
-function OpsDashboard({delegates,supervisors,changeStatus}){
+function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeStatus,notify,addNotifDB}){
   const accepted=delegates.filter(d=>d.status==="مقبول");
   const pending=delegates.filter(d=>d.status==="قيد المراجعة");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
+
+  const [xlsErr,setXlsErr]=useState(null);
+  const [preview,setPreview]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const fileRef=useRef();
+
+  const [editId,setEditId]=useState(null);
+  const [editRate,setEditRate]=useState("");
+
+  const [renameId,setRenameId]=useState(null);
+  const [renameVal,setRenameVal]=useState("");
+  const [previewImg,setPreviewImg]=useState(null);
+
+  const handleXlsx=(e)=>{
+    const file=e.target.files[0];if(!file)return;setXlsErr(null);
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:"binary"});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+        if(rows.length<2){setXlsErr("الملف فارغ");return;}
+        const hdrs=rows[0].map(h=>String(h||"").trim().toLowerCase());
+        const idCol=hdrs.findIndex(h=>["id","delegate_id","مندوب","del_id"].some(k=>h.includes(k)));
+        const orCol=hdrs.findIndex(h=>["order","أوردر","عدد","orders"].some(k=>h.includes(k)));
+        if(idCol===-1||orCol===-1){setXlsErr(`لم يُعثر على الأعمدة.\nأعمدة: ${rows[0].join(", ")}`);return;}
+        setPreview(rows.slice(1).filter(r=>r[idCol]).map(r=>({id:String(r[idCol]).trim(),orders:parseInt(r[orCol])||0})));
+      }catch(err){setXlsErr("خطأ: "+err.message);}
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const applyXlsx=async()=>{
+    if(!preview)return;setSaving(true);
+    let cnt=0;
+    try{
+      for(const r of preview){
+        const d=delegates.find(x=>x.id===r.id&&x.status==="مقبول");
+        if(d){await dbUpdate("delegates",{orders:r.orders},{id:r.id});cnt++;}
+      }
+      setDelegates(prev=>Array.isArray(prev)?prev.map(d=>{
+        const m=preview.find(r=>r.id===d.id);
+        return m&&d.status==="مقبول"?{...d,orders:m.orders}:d;
+      }):[]);
+      // notify each affected supervisor
+      const affectedSupIds=[...new Set(preview.map(r=>{
+        const d=delegates.find(x=>x.id===r.id);
+        return d?d.supervisor_id:null;
+      }).filter(Boolean))];
+      for(const supId of affectedSupIds){
+        await addNotifDB(supId,"📦 التحديث الأسبوعي: تم تحديث أوردرات مناديبك","info");
+      }
+      notify(`✅ تم تحديث ${cnt} مندوب من ${affectedSupIds.length} مشرف`);
+      setPreview(null);if(fileRef.current)fileRef.current.value="";
+    }finally{setSaving(false);}
+  };
+
+  const saveRate=async(id)=>{
+    const rate=parseFloat(editRate);
+    if(isNaN(rate)||rate<0||rate>100){notify("❗ نسبة غير صحيحة","error");return;}
+    await dbUpdate("delegates",{commission_rate:rate},{id});
+    setDelegates(prev=>prev.map(d=>d.id===id?{...d,commission_rate:rate}:d));
+    const d=delegates.find(x=>x.id===id);
+    if(d) await addNotifDB(d.supervisor_id,`💰 تم تحديد نسبة عمولة "${d.name}" بـ ${rate}%`,"info");
+    notify("✅ تم تحديث النسبة");
+    setEditId(null);
+  };
+
+  const saveRename=async(id)=>{
+    if(!renameVal.trim()){notify("❗ أدخل اسماً","error");return;}
+    await dbUpdate("supervisors",{name:renameVal.trim()},{id});
+    setSupervisors(prev=>prev.map(s=>s.id===id?{...s,name:renameVal.trim()}:s));
+    notify("✅ تم تعديل الاسم");
+    setRenameId(null);
+  };
+
   return(
     <div>
       <h2 style={{color:C.text,margin:"0 0 20px",fontSize:20}}>📊 لوحة مدير التشغيل</h2>
@@ -819,12 +945,137 @@ function OpsDashboard({delegates,supervisors,changeStatus}){
         <StatBox label="قيد المراجعة"      value={pending.length}     accent={C.yellow}/>
         <StatBox label="إجمالي الأوردرات" value={totalOrders.toLocaleString()} accent="#f97316" sub="لجميع المناديب"/>
       </div>
+
+      {/* Excel upload — ops only */}
+      <Card style={{marginBottom:22}}>
+        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>📊 رفع شيت Excel — تحديث أوردرات جميع المناديب</h3>
+        <p style={{color:"#445",fontSize:12,marginBottom:12}}>عمود <strong style={{color:C.blue}}>ID</strong> + عمود <strong style={{color:C.blue}}>Orders</strong></p>
+        <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${C.border}`,borderRadius:10,padding:"22px",textAlign:"center",cursor:"pointer",background:C.panel}}
+          onMouseEnter={e=>e.currentTarget.style.borderColor=C.blue} onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+          <div style={{fontSize:36,marginBottom:8}}>📋</div>
+          <div style={{color:C.muted,fontSize:13}}>اضغط لاختيار ملف Excel</div>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleXlsx}/>
+        </div>
+        {xlsErr&&<div style={{background:"#3d0d0d",border:`1px solid ${C.red}`,borderRadius:8,padding:"10px 14px",marginTop:10,color:C.red,fontSize:12,whiteSpace:"pre-wrap"}}>{xlsErr}</div>}
+        {preview&&(
+          <div style={{marginTop:12}}>
+            <div style={{color:C.green,fontSize:13,marginBottom:8}}>✅ {preview.length} صف</div>
+            <div style={{maxHeight:160,overflowY:"auto",background:C.panel,borderRadius:8,padding:10}}>
+              {preview.slice(0,10).map((r,i)=>{
+                const f=delegates.find(d=>d.id===r.id);
+                return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.border}22`,fontSize:12}}>
+                  <span style={{color:C.blue,fontFamily:"monospace"}}>{r.id}</span>
+                  <span style={{color:C.purple}}>{r.orders}</span>
+                  <span style={{color:f?C.green:C.red}}>{f?"✓ "+f.name:"✗ غير موجود"}</span>
+                </div>;
+              })}
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:10}}>
+              <Btn variant="success" onClick={applyXlsx} disabled={saving} style={{flex:1}}>{saving?"⏳ جاري...":"✅ تطبيق"}</Btn>
+              <Btn variant="ghost" onClick={()=>setPreview(null)}>إلغاء</Btn>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Pending review across all supervisors */}
+      {previewImg&&(
+        <div onClick={()=>setPreviewImg(null)} style={{position:"fixed",inset:0,background:"#000c",zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:14,padding:20,maxWidth:420,width:"90%",textAlign:"center"}}>
+            <div style={{color:C.text,fontWeight:700,marginBottom:12}}>{previewImg.label}</div>
+            <img src={previewImg.src} alt="" style={{width:"100%",borderRadius:10,maxHeight:420,objectFit:"contain"}}/>
+            <Btn variant="ghost" onClick={()=>setPreviewImg(null)} style={{marginTop:14,width:"100%"}}>إغلاق</Btn>
+          </div>
+        </div>
+      )}
+      {pending.length>0&&(
+        <Card style={{marginBottom:22}}>
+          <h3 style={{margin:"0 0 16px",color:C.text,fontSize:15}}>⏳ طلبات تحتاج مراجعة ({pending.length})</h3>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {pending.map(d=>{
+              const sup=supervisors.find(s=>s.id===d.supervisor_id);
+              const docs=d.docs||{};
+              const docList=[
+                {key:"selfie",label:"سيلفي",icon:"🤳"},
+                {key:"nationalFront",label:"وش البطاقة",icon:"🪪"},
+                {key:"nationalBack",label:"ظهر البطاقة",icon:"🪪"},
+                {key:"licenseFront",label:"وش الرخصة",icon:"📋"},
+                {key:"licenseBack",label:"ظهر الرخصة",icon:"📋"},
+              ].filter(x=>docs[x.key]);
+              return(
+                <div key={d.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:C.panel,padding:"12px 16px",borderRadius:10,border:`1px solid ${C.border}`,flexWrap:"wrap",gap:10}}>
+                  <div>
+                    <div style={{fontWeight:600,color:C.text}}>{d.name} <span style={{color:C.muted,fontSize:12}}>({d.id})</span></div>
+                    <div style={{color:C.muted,fontSize:12,marginTop:2}}>{d.phone} | {d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"} {d.vehicle_type} | المشرف: {sup?.name||d.supervisor_id}</div>
+                    {d.national_id&&<div style={{color:"#556",fontSize:11,marginTop:2}}>رقم قومي: {d.national_id} | العنوان: {d.address}</div>}
+                    <div style={{display:"flex",gap:6,marginTop:6}}>
+                      {docList.length>0
+                        ?docList.map(x=>(
+                          <span key={x.key} title={x.label} style={{cursor:"pointer",fontSize:18}}
+                            onClick={()=>setPreviewImg({src:docs[x.key],label:x.label})}>{x.icon}</span>
+                        ))
+                        :<span style={{color:C.red,fontSize:11}}>⚠️ لا توجد مستندات</span>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <Btn variant="success" onClick={()=>changeStatus(d.id,"مقبول")}>قبول</Btn>
+                    <Btn variant="danger"  onClick={()=>changeStatus(d.id,"مرفوض")}>رفض</Btn>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* Commission rates for accepted delegates */}
+      <Card style={{marginBottom:22}}>
+        <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>💰 تحديد نسب العمولة للمناديب المقبولين</h3>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
+              {["الاسم","الوسيلة","المشرف","العنوان","الأوردرات","النسبة"].map(h=>(
+                <th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {accepted.map(d=>{
+              const sup=supervisors.find(s=>s.id===d.supervisor_id);
+              return(
+                <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`}}>
+                  <td style={{padding:"11px 12px",color:C.text}}>{d.name}</td>
+                  <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
+                  <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{sup?.name||d.supervisor_id}</td>
+                  <td style={{padding:"11px 12px",color:"#556",fontSize:12}}>{d.address||"—"}</td>
+                  <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{(d.orders||0).toLocaleString()}</td>
+                  <td style={{padding:"11px 12px"}}>
+                    {editId===d.id
+                      ?<div style={{display:"flex",gap:6}}>
+                        <input type="number" value={editRate} onChange={e=>setEditRate(e.target.value)}
+                          style={{width:60,background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"4px 7px",fontSize:12}}/>
+                        <Btn variant="success" onClick={()=>saveRate(d.id)} style={{padding:"4px 8px",fontSize:11}}>حفظ</Btn>
+                        <Btn variant="ghost" onClick={()=>setEditId(null)} style={{padding:"4px 8px",fontSize:11}}>إلغاء</Btn>
+                      </div>
+                      :<div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{color:d.commission_rate>0?C.green:"#445",fontWeight:700}}>{d.commission_rate>0?`${d.commission_rate}%`:"غير محددة"}</span>
+                        <Btn variant="ghost" onClick={()=>{setEditId(d.id);setEditRate(String(d.commission_rate||""));}} style={{padding:"3px 8px",fontSize:11}}>✏️</Btn>
+                      </div>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </Card>
+
+      {/* Supervisors report + rename */}
       <Card>
         <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>📋 تقرير المشرفين</h3>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["المشرف","ID","المناديب","المقبولون","قيد المراجعة","إجمالي الأوردرات"].map(h=>(
+              {["المشرف","ID","المناديب","المقبولون","قيد المراجعة","إجمالي الأوردرات",""].map(h=>(
                 <th key={h} style={{padding:"10px 14px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>
               ))}
             </tr>
@@ -836,12 +1087,25 @@ function OpsDashboard({delegates,supervisors,changeStatus}){
               const mp=md.filter(d=>d.status==="قيد المراجعة");
               return(
                 <tr key={s.id} style={{borderBottom:`1px solid ${C.border}22`}}>
-                  <td style={{padding:"12px 14px",color:C.text,fontWeight:600}}>{s.name}</td>
+                  <td style={{padding:"12px 14px",color:C.text,fontWeight:600}}>
+                    {renameId===s.id
+                      ?<input value={renameVal} onChange={e=>setRenameVal(e.target.value)}
+                        style={{background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"4px 8px",fontSize:13,width:120}}/>
+                      :s.name}
+                  </td>
                   <td style={{padding:"12px 14px",fontFamily:"monospace",color:C.blue,fontSize:12}}>{s.id}</td>
                   <td style={{padding:"12px 14px",color:C.muted}}>{md.length}</td>
                   <td style={{padding:"12px 14px",color:C.green,fontWeight:700}}>{ma.length}</td>
                   <td style={{padding:"12px 14px",color:C.yellow}}>{mp.length}</td>
                   <td style={{padding:"12px 14px",color:C.purple,fontWeight:700}}>{ma.reduce((a,d)=>a+(d.orders||0),0).toLocaleString()}</td>
+                  <td style={{padding:"12px 14px"}}>
+                    {renameId===s.id
+                      ?<div style={{display:"flex",gap:6}}>
+                        <Btn variant="success" onClick={()=>saveRename(s.id)} style={{padding:"4px 10px",fontSize:11}}>حفظ</Btn>
+                        <Btn variant="ghost" onClick={()=>setRenameId(null)} style={{padding:"4px 10px",fontSize:11}}>إلغاء</Btn>
+                      </div>
+                      :<Btn variant="ghost" onClick={()=>{setRenameId(s.id);setRenameVal(s.name);}} style={{padding:"4px 10px",fontSize:11}}>✏️ تعديل الاسم</Btn>}
+                  </td>
                 </tr>
               );
             })}
@@ -853,7 +1117,7 @@ function OpsDashboard({delegates,supervisors,changeStatus}){
 }
 
 // ══════════════════ DASHBOARD ══════════════════════════════════════════════
-function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
+function DashboardTab({myDelegates,accepted,totalOrders}){
   const pending=myDelegates.filter(d=>d.status==="قيد المراجعة");
   const rejected=myDelegates.filter(d=>d.status==="مرفوض");
   return(
@@ -880,7 +1144,7 @@ function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
                 <div style={{background:C.border,borderRadius:6,height:8}}>
                   <div style={{background:`linear-gradient(90deg,${C.blue},${C.purple})`,height:8,borderRadius:6,width:`${pct}%`,transition:"width .5s"}}/>
                 </div>
-                <div style={{color:"#445",fontSize:11,marginTop:3}}>النسبة: <span style={{color:C.green}}>{d.commission_rate}%</span> | العمولة: <span style={{color:C.yellow}}>{((d.orders||0)*d.commission_rate/100).toFixed(0)} ج</span></div>
+                <div style={{color:"#445",fontSize:11,marginTop:3}}>النسبة: <span style={{color:C.green}}>{d.commission_rate>0?`${d.commission_rate}%`:"لم تُحدد بعد"}</span> | العمولة: <span style={{color:C.yellow}}>{((d.orders||0)*(d.commission_rate||0)/100).toFixed(0)} ج</span></div>
               </div>
             );
           })}
@@ -888,7 +1152,7 @@ function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
       )}
       {pending.length>0&&(
         <Card>
-          <h3 style={{margin:"0 0 16px",color:C.text,fontSize:15}}>⏳ طلبات تحتاج مراجعة ({pending.length})</h3>
+          <h3 style={{margin:"0 0 16px",color:C.text,fontSize:15}}>⏳ طلبات قيد المراجعة من مدير التشغيل ({pending.length})</h3>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {pending.map(d=>(
               <div key={d.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:C.panel,padding:"12px 16px",borderRadius:10,border:`1px solid ${C.border}`,flexWrap:"wrap",gap:10}}>
@@ -896,10 +1160,7 @@ function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
                   <div style={{fontWeight:600,color:C.text}}>{d.name} <span style={{color:C.muted,fontSize:12}}>({d.id})</span></div>
                   <div style={{color:C.muted,fontSize:12,marginTop:2}}>{d.phone} | {d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"} {d.vehicle_type}</div>
                 </div>
-                <div style={{display:"flex",gap:8}}>
-                  <Btn variant="success" onClick={()=>changeStatus(d.id,"مقبول")}>قبول</Btn>
-                  <Btn variant="danger"  onClick={()=>changeStatus(d.id,"مرفوض")}>رفض</Btn>
-                </div>
+                <Badge status={d.status}/>
               </div>
             ))}
           </div>
@@ -912,61 +1173,91 @@ function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
 
 // ══════════════════ UPLOAD DOC ════════════════════════════════════════════
 function UploadDocTab({supervisors,setDelegates,notify,currentSup,addNotifDB}){
-  const [form,setForm]=useState({name:"",phone:"",supervisorId:currentSup.id,commissionRate:5,vehicleType:"موتوسيكل"});
-  const [docs,setDocs]=useState({selfie:null,national:null,license:null});
+  const [form,setForm]=useState({name:"",phone:"",nationalId:"",address:"",vehicleType:"موتوسيكل"});
+  const [docs,setDocs]=useState({selfie:null,nationalFront:null,nationalBack:null,licenseFront:null,licenseBack:null});
   const [saving,setSaving]=useState(false);
   const setDoc=(k,v)=>setDocs(prev=>({...prev,[k]:v}));
+  const needLicense=form.vehicleType==="موتوسيكل";
+
   const validate=()=>{
-    if(!form.name.trim()) {notify("❗ أدخل اسم المندوب","error");    return false;}
-    if(!form.phone.trim()){notify("❗ أدخل رقم الهاتف","error");     return false;}
-    if(!docs.selfie)      {notify("❗ صورة السيلفي مطلوبة","error"); return false;}
-    if(!docs.national)    {notify("❗ صورة البطاقة مطلوبة","error");return false;}
-    if(form.vehicleType==="موتوسيكل"&&!docs.license){notify("❗ صورة الرخصة مطلوبة","error");return false;}
+    if(!form.name.trim())      {notify("❗ أدخل اسم المندوب","error");        return false;}
+    if(!form.phone.trim())     {notify("❗ أدخل رقم الهاتف","error");         return false;}
+    if(!form.nationalId.trim()){notify("❗ أدخل الرقم القومي","error");       return false;}
+    if(!form.address.trim())   {notify("❗ أدخل عنوان السكن","error");        return false;}
+    if(!docs.selfie)           {notify("❗ صورة السيلفي مطلوبة","error");     return false;}
+    if(!docs.nationalFront)    {notify("❗ وش البطاقة مطلوب","error");        return false;}
+    if(!docs.nationalBack)     {notify("❗ ظهر البطاقة مطلوب","error");       return false;}
+    if(needLicense&&!docs.licenseFront){notify("❗ وش الرخصة مطلوب","error"); return false;}
+    if(needLicense&&!docs.licenseBack) {notify("❗ ظهر الرخصة مطلوب","error");return false;}
     return true;
   };
+
   const handleSubmit=async()=>{
     if(!validate())return;
     setSaving(true);
-    const nd={id:genId("DEL"),supervisor_id:form.supervisorId,name:form.name.trim(),phone:form.phone.trim(),status:"قيد المراجعة",commission_rate:parseFloat(form.commissionRate)||5,orders:0,vehicle_type:form.vehicleType};
+    const nd={
+      id:genId("DEL"), supervisor_id:currentSup.id,
+      name:form.name.trim(), phone:form.phone.trim(),
+      national_id:form.nationalId.trim(), address:form.address.trim(),
+      status:"قيد المراجعة", commission_rate:0, orders:0,
+      vehicle_type:form.vehicleType,
+      docs:{
+        selfie:docs.selfie, nationalFront:docs.nationalFront, nationalBack:docs.nationalBack,
+        licenseFront:needLicense?docs.licenseFront:null, licenseBack:needLicense?docs.licenseBack:null
+      }
+    };
     try{
-      const ok=await dbInsert("delegates",nd); const error=ok?null:"insert failed";
-      if(error)throw error;
+      const result=await dbInsert("delegates",nd);
+      if(!result.ok){
+        notify(`❌ فشل الحفظ: ${result.error || result.status}`,"error");
+        return;
+      }
       setDelegates(prev=>[...(Array.isArray(prev)?prev:[]),nd]);
       notify(`✅ تم إضافة ${form.name} — ID: ${nd.id}`);
-      setForm({name:"",phone:"",supervisorId:currentSup.id,commissionRate:5,vehicleType:"موتوسيكل"});
-      setDocs({selfie:null,national:null,license:null});
-    }catch(e){notify("❌ حدث خطأ أثناء الحفظ","error");}
+      setForm({name:"",phone:"",nationalId:"",address:"",vehicleType:"موتوسيكل"});
+      setDocs({selfie:null,nationalFront:null,nationalBack:null,licenseFront:null,licenseBack:null});
+    }catch(e){notify("❌ حدث خطأ أثناء الحفظ: "+e.message,"error");}
     finally{setSaving(false);}
   };
-  const needLicense=form.vehicleType==="موتوسيكل";
+
   return(
-    <div style={{maxWidth:640}}>
+    <div style={{maxWidth:680}}>
       <h2 style={{color:C.text,marginBottom:6}}>📄 إضافة مندوب جديد</h2>
-      <p style={{color:C.muted,marginBottom:22}}>أدخل البيانات وارفع المستندات المطلوبة</p>
+      <p style={{color:C.muted,marginBottom:22}}>أدخل البيانات وارفع المستندات المطلوبة — نسبة العمولة يحددها مدير التشغيل لاحقاً</p>
       <Card>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <Inp label="اسم المندوب *" placeholder="محمد أحمد" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
           <Inp label="رقم الهاتف *" placeholder="05XXXXXXXX" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-          <Inp label="نسبة العمولة (%)" type="number" min={0} max={100} value={form.commissionRate} onChange={e=>setForm({...form,commissionRate:e.target.value})}/>
+          <Inp label="الرقم القومي *" placeholder="29XXXXXXXXXXXX" value={form.nationalId} onChange={e=>setForm({...form,nationalId:e.target.value})}/>
           <Sel label="وسيلة التوصيل" value={form.vehicleType} onChange={e=>setForm({...form,vehicleType:e.target.value})} options={[{value:"موتوسيكل",label:"🏍️ موتوسيكل"},{value:"دراجة هوائية",label:"🚲 دراجة هوائية"}]}/>
         </div>
-        <div style={{marginBottom:8,color:C.muted,fontSize:13,fontWeight:600}}>📸 المستندات</div>
+        <Inp label="عنوان السكن *" placeholder="المحافظة، المدينة، الحي، الشارع" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/>
+
+        <div style={{marginBottom:8,marginTop:8,color:C.muted,fontSize:13,fontWeight:600}}>📸 المستندات المطلوبة</div>
         <div style={{background:C.panel,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
-          <div style={{color:C.yellow,fontSize:12,marginBottom:8}}>⚠️ تعليمات:</div>
+          <div style={{color:C.yellow,fontSize:12,marginBottom:8}}>⚠️ تعليمات مهمة:</div>
           <div style={{color:"#667",fontSize:12,lineHeight:1.9}}>
             • <strong style={{color:C.muted}}>السيلفي:</strong> وجه واضح أمام خلفية سادة<br/>
-            • <strong style={{color:C.muted}}>البطاقة:</strong> بدون فلاش — جميع البيانات ظاهرة — بدون قص<br/>
-            {needLicense?<>• <strong style={{color:C.muted}}>الرخصة:</strong> مطلوبة للموتوسيكل</>:<span style={{color:"#445"}}>• الرخصة: غير مطلوبة للدراجة الهوائية</span>}
+            • <strong style={{color:C.muted}}>وش البطاقة:</strong> واضح ومقصوص بدقة — بدون أي أضواء أو فلاش<br/>
+            • <strong style={{color:C.muted}}>ظهر البطاقة:</strong> واضح ومقصوص بدقة — بدون أي أضواء أو فلاش<br/>
+            {needLicense
+              ?<>• <strong style={{color:C.muted}}>وش وظهر رخصة الموتوسيكل:</strong> مطلوبة لمندوبي الموتوسيكل</>
+              :<span style={{color:"#445"}}>• الرخصة: غير مطلوبة للدراجة الهوائية</span>}
           </div>
         </div>
+
         <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
           <PhotoBox label="سيلفي" hint="وجه أمام خلفية سادة" required value={docs.selfie} onChange={v=>setDoc("selfie",v)}/>
-          <PhotoBox label="البطاقة" hint="بدون فلاش — بيانات كاملة" required value={docs.national} onChange={v=>setDoc("national",v)}/>
-          {needLicense
-            ?<PhotoBox label="الرخصة" hint="رخصة قيادة موتوسيكل" required value={docs.license} onChange={v=>setDoc("license",v)}/>
-            :<div style={{flex:1,minWidth:130,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#445",fontSize:12,textAlign:"center",padding:16}}>🚲<br/>لا تلزم رخصة</div></div>}
+          <PhotoBox label="وش البطاقة" hint="بدون أضواء — مقصوص" required value={docs.nationalFront} onChange={v=>setDoc("nationalFront",v)}/>
+          <PhotoBox label="ظهر البطاقة" hint="بدون أضواء — مقصوص" required value={docs.nationalBack} onChange={v=>setDoc("nationalBack",v)}/>
+          {needLicense&&(
+            <>
+              <PhotoBox label="وش الرخصة" hint="رخصة قيادة موتوسيكل" required value={docs.licenseFront} onChange={v=>setDoc("licenseFront",v)}/>
+              <PhotoBox label="ظهر الرخصة" hint="رخصة قيادة موتوسيكل" required value={docs.licenseBack} onChange={v=>setDoc("licenseBack",v)}/>
+            </>
+          )}
         </div>
         <Btn onClick={handleSubmit} disabled={saving} style={{width:"100%",padding:"12px",marginTop:18,fontSize:15}}>
           {saving?"⏳ جاري الحفظ...":"✅ إرسال للمراجعة"}
@@ -977,31 +1268,15 @@ function UploadDocTab({supervisors,setDelegates,notify,currentSup,addNotifDB}){
 }
 
 // ══════════════════ DELEGATES ═════════════════════════════════════════════
-function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,addNotifDB}){
+function DelegatesTab({myDelegates}){
   const [search,setSearch]=useState("");
   const [filter,setFilter]=useState("الكل");
-  const [editId,setEditId]=useState(null);
-  const [editD,setEditD]=useState({});
   const [preview,setPreview]=useState(null);
-  const [saving,setSaving]=useState(false);
   const shown=myDelegates.filter(d=>{
     const ms=d.name.includes(search)||d.id.includes(search)||d.phone.includes(search);
     const mf=filter==="الكل"||d.status===filter;
     return ms&&mf;
   });
-  const saveEdit=async(id)=>{
-    setSaving(true);
-    try{
-      const prev=delegates.find(x=>x.id===id);
-      await dbUpdate("delegates",{status:editD.status,commission_rate:editD.commission_rate},{id:id});
-      if(prev&&editD.status!==prev.status){
-        const msg=editD.status==="مقبول"?`✅ تم قبول "${prev.name}"`:`❌ تم رفض "${prev.name}"`;
-        await addNotifDB(prev.supervisor_id,msg,editD.status==="مقبول"?"success":"error");
-      }
-      setDelegates(p=>Array.isArray(p)?p.map(d=>d.id===id?{...d,...editD}:d):[]);
-      setEditId(null);notify("✅ تم تحديث البيانات");
-    }finally{setSaving(false);}
-  };
   return(
     <div>
       {preview&&(
@@ -1022,51 +1297,50 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
           ))}
         </div>
       </div>
+      <p style={{color:"#556",fontSize:12,marginBottom:14}}>مراجعة الحالة وتحديد العمولة من مسؤولية مدير التشغيل</p>
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["ID","الاسم","الهاتف","الوسيلة","الحالة","النسبة","الأوردرات","إجراءات"].map(h=>(
+              {["ID","الاسم","الهاتف","الوسيلة","الحالة","النسبة","الأوردرات","المستندات"].map(h=>(
                 <th key={h} style={{padding:"11px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {shown.map(d=>(
-              <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`,background:editId===d.id?"#0d1e3a":"transparent"}}>
-                <td style={{padding:"12px",fontFamily:"monospace",color:C.blue,fontSize:12}}>{d.id}</td>
-                <td style={{padding:"12px",color:C.text,fontWeight:600}}>{d.name}</td>
-                <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.phone}</td>
-                <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
-                <td style={{padding:"12px"}}>
-                  {editId===d.id
-                    ?<select value={editD.status} onChange={e=>setEditD({...editD,status:e.target.value})} style={{background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"4px 8px",fontSize:12}}>
-                      {["مقبول","مرفوض","قيد المراجعة"].map(s=><option key={s}>{s}</option>)}
-                    </select>
-                    :<Badge status={d.status}/>}
-                </td>
-                <td style={{padding:"12px"}}>
-                  {editId===d.id
-                    ?<input type="number" value={editD.commission_rate} onChange={e=>setEditD({...editD,commission_rate:parseFloat(e.target.value)})} style={{width:55,background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"4px 7px",fontSize:12}}/>
-                    :<span style={{color:C.green,fontWeight:700}}>{d.commission_rate}%</span>}
-                </td>
-                <td style={{padding:"12px",color:C.purple,fontWeight:700}}>{d.status==="مقبول"?(d.orders||0).toLocaleString():"—"}</td>
-                <td style={{padding:"12px"}}>
-                  {editId===d.id
-                    ?<div style={{display:"flex",gap:6}}>
-                      <Btn variant="success" onClick={()=>saveEdit(d.id)} disabled={saving} style={{padding:"5px 10px",fontSize:12}}>{saving?"...":"حفظ"}</Btn>
-                      <Btn variant="ghost" onClick={()=>setEditId(null)} style={{padding:"5px 10px",fontSize:12}}>إلغاء</Btn>
+            {shown.map(d=>{
+              const docs=d.docs||{};
+              const docList=[
+                {key:"selfie",label:"سيلفي",icon:"🤳"},
+                {key:"nationalFront",label:"وش البطاقة",icon:"🪪"},
+                {key:"nationalBack",label:"ظهر البطاقة",icon:"🪪"},
+                {key:"licenseFront",label:"وش الرخصة",icon:"📋"},
+                {key:"licenseBack",label:"ظهر الرخصة",icon:"📋"},
+              ].filter(x=>docs[x.key]);
+              return(
+                <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`}}>
+                  <td style={{padding:"12px",fontFamily:"monospace",color:C.blue,fontSize:12}}>{d.id}</td>
+                  <td style={{padding:"12px",color:C.text,fontWeight:600}}>{d.name}</td>
+                  <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.phone}</td>
+                  <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
+                  <td style={{padding:"12px"}}><Badge status={d.status}/></td>
+                  <td style={{padding:"12px"}}>
+                    <span style={{color:d.commission_rate>0?C.green:"#445",fontWeight:700}}>{d.commission_rate>0?`${d.commission_rate}%`:"لم تُحدد بعد"}</span>
+                  </td>
+                  <td style={{padding:"12px",color:C.purple,fontWeight:700}}>{d.status==="مقبول"?(d.orders||0).toLocaleString():"—"}</td>
+                  <td style={{padding:"12px"}}>
+                    <div style={{display:"flex",gap:5}}>
+                      {docList.length>0
+                        ?docList.map(x=>(
+                          <span key={x.key} title={x.label} style={{cursor:"pointer",fontSize:18}}
+                            onClick={()=>setPreview({src:docs[x.key],label:x.label})}>{x.icon}</span>
+                        ))
+                        :<span style={{color:"#445",fontSize:11}}>—</span>}
                     </div>
-                    :<div style={{display:"flex",gap:5}}>
-                      <Btn variant="ghost" onClick={()=>{setEditId(d.id);setEditD({status:d.status,commission_rate:d.commission_rate});}} style={{padding:"5px 10px",fontSize:12}}>✏️</Btn>
-                      {d.status==="قيد المراجعة"&&<>
-                        <Btn variant="success" onClick={()=>changeStatus(d.id,"مقبول")} style={{padding:"5px 10px",fontSize:12}}>قبول</Btn>
-                        <Btn variant="danger"  onClick={()=>changeStatus(d.id,"مرفوض")} style={{padding:"5px 10px",fontSize:12}}>رفض</Btn>
-                      </>}
-                    </div>}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {shown.length===0&&<div style={{textAlign:"center",padding:"32px",color:C.muted}}>لا توجد نتائج</div>}
@@ -1077,133 +1351,42 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
 
 // ══════════════════ ORDERS ════════════════════════════════════════════════
 function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNotifDB}){
-  const [xlsErr,setXlsErr]=useState(null);
-  const [preview,setPreview]=useState(null);
-  const [manId,setManId]=useState("");
-  const [manOrds,setManOrds]=useState("");
-  const [saving,setSaving]=useState(false);
-  const fileRef=useRef();
   const accepted=myDelegates.filter(d=>d.status==="مقبول");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
-
-  const handleXlsx=(e)=>{
-    const file=e.target.files[0];if(!file)return;setXlsErr(null);
-    const reader=new FileReader();
-    reader.onload=(ev)=>{
-      try{
-        const wb=XLSX.read(ev.target.result,{type:"binary"});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const rows=XLSX.utils.sheet_to_json(ws,{header:1});
-        if(rows.length<2){setXlsErr("الملف فارغ");return;}
-        const hdrs=rows[0].map(h=>String(h||"").trim().toLowerCase());
-        const idCol=hdrs.findIndex(h=>["id","delegate_id","مندوب","del_id"].some(k=>h.includes(k)));
-        const orCol=hdrs.findIndex(h=>["order","أوردر","عدد","orders"].some(k=>h.includes(k)));
-        if(idCol===-1||orCol===-1){setXlsErr(`لم يُعثر على الأعمدة.\nأعمدة: ${rows[0].join(", ")}`);return;}
-        setPreview(rows.slice(1).filter(r=>r[idCol]).map(r=>({id:String(r[idCol]).trim(),orders:parseInt(r[orCol])||0})));
-      }catch(err){setXlsErr("خطأ: "+err.message);}
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  const applyXlsx=async()=>{
-    if(!preview)return;setSaving(true);
-    let cnt=0;
-    try{
-      for(const r of preview){
-        const d=delegates.find(x=>x.id===r.id&&x.supervisor_id===currentSup.id&&x.status==="مقبول");
-        if(d){await dbUpdate("delegates",{orders:r.orders},{id:r.id});cnt++;}
-      }
-      setDelegates(prev=>Array.isArray(prev)?prev.map(d=>{
-        const m=preview.find(r=>r.id===d.id);
-        return m&&d.supervisor_id===currentSup.id&&d.status==="مقبول"?{...d,orders:m.orders}:d;
-      }):[]);
-      await addNotifDB(currentSup.id,`📦 تم تحديث أوردرات ${cnt} مندوب من Excel`,"info");
-      notify(`✅ تم تحديث ${cnt} مندوب`);
-      setPreview(null);if(fileRef.current)fileRef.current.value="";
-    }finally{setSaving(false);}
-  };
-
-  const applyManual=async()=>{
-    const d=delegates.find(x=>x.id===manId&&x.supervisor_id===currentSup.id);
-    if(!d){notify("❗ المندوب غير موجود","error");return;}
-    if(d.status!=="مقبول"){notify("❗ المندوب غير مقبول","error");return;}
-    setSaving(true);
-    try{
-      await dbUpdate("delegates",{orders:parseInt(manOrds)||0},{id:manId});
-      setDelegates(prev=>Array.isArray(prev)?prev.map(x=>x.id===manId?{...x,orders:parseInt(manOrds)||0}:x):[]);
-      await addNotifDB(currentSup.id,`📦 تم تحديث أوردرات "${d.name}": ${manOrds} أوردر`,"info");
-      notify(`✅ تم تحديث أوردرات ${d.name}`);
-      setManId("");setManOrds("");
-    }finally{setSaving(false);}
-  };
+  const activeLastWeek=accepted.filter(d=>(d.orders||0)>0).length;
 
   return(
     <div>
-      <h2 style={{color:C.text,marginBottom:6}}>📦 إدارة الأوردرات</h2>
-      <p style={{color:C.muted,marginBottom:22}}>رفع شيت Excel أو تحديث يدوي</p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
-        <Card>
-          <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>📊 رفع شيت Excel</h3>
-          <p style={{color:"#445",fontSize:12,marginBottom:12}}>عمود <strong style={{color:C.blue}}>ID</strong> + عمود <strong style={{color:C.blue}}>Orders</strong></p>
-          <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${C.border}`,borderRadius:10,padding:"22px",textAlign:"center",cursor:"pointer",background:C.panel}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.blue} onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-            <div style={{fontSize:36,marginBottom:8}}>📋</div>
-            <div style={{color:C.muted,fontSize:13}}>اضغط لاختيار ملف</div>
-            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleXlsx}/>
-          </div>
-          {xlsErr&&<div style={{background:"#3d0d0d",border:`1px solid ${C.red}`,borderRadius:8,padding:"10px 14px",marginTop:10,color:C.red,fontSize:12,whiteSpace:"pre-wrap"}}>{xlsErr}</div>}
-          {preview&&(
-            <div style={{marginTop:12}}>
-              <div style={{color:C.green,fontSize:13,marginBottom:8}}>✅ {preview.length} صف</div>
-              <div style={{maxHeight:130,overflowY:"auto",background:C.panel,borderRadius:8,padding:10}}>
-                {preview.slice(0,6).map((r,i)=>{
-                  const f=delegates.find(d=>d.id===r.id&&d.supervisor_id===currentSup.id);
-                  return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.border}22`,fontSize:12}}>
-                    <span style={{color:C.blue,fontFamily:"monospace"}}>{r.id}</span>
-                    <span style={{color:C.purple}}>{r.orders}</span>
-                    <span style={{color:f?C.green:C.red}}>{f?"✓":"✗"}</span>
-                  </div>;
-                })}
-              </div>
-              <div style={{display:"flex",gap:8,marginTop:10}}>
-                <Btn variant="success" onClick={applyXlsx} disabled={saving} style={{flex:1}}>{saving?"⏳ جاري...":"✅ تطبيق"}</Btn>
-                <Btn variant="ghost" onClick={()=>setPreview(null)}>إلغاء</Btn>
-              </div>
-            </div>
-          )}
-        </Card>
-        <Card>
-          <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>✏️ تحديث يدوي</h3>
-          <Sel label="اختر المندوب" value={manId} onChange={e=>setManId(e.target.value)} options={[{value:"",label:"-- اختر --"},...myDelegates.filter(d=>d.status==="مقبول").map(d=>({value:d.id,label:`${d.name} (${d.id})`}))]}/>
-          <Inp label="عدد الأوردرات" type="number" min={0} value={manOrds} onChange={e=>setManOrds(e.target.value)} placeholder="120"/>
-          <Btn onClick={applyManual} disabled={!manId||!manOrds||saving} style={{width:"100%",padding:"11px"}}>{saving?"⏳ جاري...":"تحديث"}</Btn>
-        </Card>
+      <h2 style={{color:C.text,marginBottom:6}}>📦 ملخص الأوردرات</h2>
+      <p style={{color:C.muted,marginBottom:22}}>بيانات الأوردرات يتم تحديثها أسبوعياً من قبل مدير التشغيل</p>
+
+      <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}}>
+        <StatBox label="مناديب نشطون آخر أسبوع" value={activeLastWeek} accent={C.green} sub={`من إجمالي ${accepted.length} مقبول`}/>
+        <StatBox label="إجمالي الأوردرات المكتملة" value={totalOrders.toLocaleString()} accent={C.purple}/>
+        <StatBox label="إجمالي العمولات" value={accepted.reduce((s,d)=>s+((d.orders||0)*(d.commission_rate||0)/100),0).toFixed(0)} accent={C.yellow}/>
       </div>
+
       <Card>
-        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>ملخص — إجمالي: <span style={{color:C.purple}}>{totalOrders.toLocaleString()}</span></h3>
+        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>تفاصيل المناديب المقبولين</h3>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["ID","الاسم","الوسيلة","الحالة","الأوردرات","النسبة","العمولة"].map(h=><th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>)}
+              {["الاسم","الوسيلة","الأوردرات (آخر أسبوع)","النسبة","العمولة"].map(h=><th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
-            {myDelegates.map(d=>(
+            {accepted.map(d=>(
               <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`}}>
-                <td style={{padding:"11px 12px",fontFamily:"monospace",color:C.blue,fontSize:12}}>{d.id}</td>
                 <td style={{padding:"11px 12px",color:C.text}}>{d.name}</td>
                 <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
-                <td style={{padding:"11px 12px"}}><Badge status={d.status}/></td>
-                <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{d.status==="مقبول"?(d.orders||0).toLocaleString():"—"}</td>
-                <td style={{padding:"11px 12px",color:C.green}}>{d.status==="مقبول"?`${d.commission_rate}%`:"—"}</td>
-                <td style={{padding:"11px 12px",color:C.yellow}}>{d.status==="مقبول"?((d.orders||0)*d.commission_rate/100).toFixed(0):"—"}</td>
+                <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{(d.orders||0).toLocaleString()}</td>
+                <td style={{padding:"11px 12px",color:C.green}}>{d.commission_rate>0?`${d.commission_rate}%`:<span style={{color:"#445"}}>لم تُحدد بعد</span>}</td>
+                <td style={{padding:"11px 12px",color:C.yellow}}>{((d.orders||0)*(d.commission_rate||0)/100).toFixed(0)}</td>
               </tr>
             ))}
-            <tr style={{background:C.panel,borderTop:`2px solid ${C.blue}`}}>
-              <td colSpan={4} style={{padding:"12px",color:C.muted,fontWeight:700}}>المجموع</td>
-              <td style={{padding:"12px",color:C.purple,fontWeight:800,fontSize:16}}>{totalOrders.toLocaleString()}</td>
-              <td>—</td>
-              <td style={{padding:"12px",color:C.yellow,fontWeight:800}}>{accepted.reduce((s,d)=>s+((d.orders||0)*d.commission_rate/100),0).toFixed(0)}</td>
-            </tr>
+            {accepted.length===0&&(
+              <tr><td colSpan={5} style={{padding:"20px",textAlign:"center",color:C.muted}}>لا يوجد مناديب مقبولون حتى الآن</td></tr>
+            )}
           </tbody>
         </table>
       </Card>
@@ -1224,12 +1407,15 @@ function SupervisorTab({supervisors,setSupervisors,notify}){
     setSaving(true);
     try{
       const ns={id:genId("SUP"),name:form.name.trim(),phone:form.phone.trim(),password_hash:form.password.trim(),email:form.email.trim(),role:"supervisor"};
-      const ok2=await dbInsert("supervisors",ns); const error=ok2?null:"insert failed";
-      if(error)throw error;
+      const result=await dbInsert("supervisors",ns);
+      if(!result.ok){
+        notify(`❌ فشل الحفظ: ${result.error || result.status}`,"error");
+        return;
+      }
       setSupervisors(prev=>[...prev,ns]);
       notify(`✅ تم إضافة ${form.name} — ID: ${ns.id}`);
       setForm({name:"",phone:"",password:"",email:""});
-    }catch(e){notify("❌ حدث خطأ","error");}
+    }catch(e){notify("❌ حدث خطأ: "+e.message,"error");}
     finally{setSaving(false);}
   };
   return(
