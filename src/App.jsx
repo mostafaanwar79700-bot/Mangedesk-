@@ -411,7 +411,6 @@ const SUP_TABS=[
   {id:"delegates", label:"👥 المناديب"},
   {id:"orders",    label:"📦 الأوردرات"},
   {id:"messages",  label:"💬 الرسائل"},
-  {id:"supervisor",label:"🏢 المشرفون"},
 ];
 const OPS_TABS=[
   {id:"ops_dashboard",label:"📊 لوحة المدير"},
@@ -949,8 +948,7 @@ function UploadDocTab({supervisors,setDelegates,notify,currentSup,addNotifDB}){
           <Inp label="اسم المندوب *" placeholder="محمد أحمد" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
           <Inp label="رقم الهاتف *" placeholder="05XXXXXXXX" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
-          <Sel label="المشرف" value={form.supervisorId} onChange={e=>setForm({...form,supervisorId:e.target.value})} options={supervisors.map(s=>({value:s.id,label:s.name}))}/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
           <Inp label="نسبة العمولة (%)" type="number" min={0} max={100} value={form.commissionRate} onChange={e=>setForm({...form,commissionRate:e.target.value})}/>
           <Sel label="وسيلة التوصيل" value={form.vehicleType} onChange={e=>setForm({...form,vehicleType:e.target.value})} options={[{value:"موتوسيكل",label:"🏍️ موتوسيكل"},{value:"دراجة هوائية",label:"🚲 دراجة هوائية"}]}/>
         </div>
