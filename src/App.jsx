@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import * as XLSX from "xlsx";
 
-// ─── Supabase REST Client (no external library) ───────────────────────────
+// â”€â”€â”€ Supabase REST Client (no external library) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SUPA_URL = "https://hlksnbrzumzfgjsefxgv.supabase.co";
 const SUPA_KEY = "sb_publishable_POxQAK5GFStpapGU4q_aUA_GzRw84bq";
 
-// ─── Simple DB helpers ───────────────────────────────────────────────────
+// â”€â”€â”€ Simple DB helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const H = () => ({
   "Content-Type": "application/json",
   "apikey": SUPA_KEY,
@@ -114,44 +114,44 @@ const sb = {
   removeChannel: () => {},
 };
 
-// ─── Seed Data (runs once if tables empty) ────────────────────────────────
+// â”€â”€â”€ Seed Data (runs once if tables empty) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SEED_SUPERVISORS = [
-  { id:"SUP001", name:"أحمد محمود", phone:"0501234567", password_hash:"1234", email:"ahmed@company.com", role:"supervisor" },
-  { id:"SUP002", name:"سارة علي",   phone:"0509876543", password_hash:"5678", email:"sara@company.com",  role:"supervisor" },
+  { id:"SUP001", name:"ط£ط­ظ…ط¯ ظ…ط­ظ…ظˆط¯", phone:"0501234567", password_hash:"1234", email:"ahmed@company.com", role:"supervisor" },
+  { id:"SUP002", name:"ط³ط§ط±ط© ط¹ظ„ظٹ",   phone:"0509876543", password_hash:"5678", email:"sara@company.com",  role:"supervisor" },
 ];
-const OPS_MANAGER = { id:"OPS001", name:"مدير التشغيل", phone:"0500000000", password_hash:"admin123", email:"ops@company.com", role:"ops" };
+const OPS_MANAGER = { id:"OPS001", name:"ظ…ط¯ظٹط± ط§ظ„طھط´ط؛ظٹظ„", phone:"0500000000", password_hash:"admin123", email:"ops@company.com", role:"ops" };
 const SEED_DELEGATES = [
-  { id:"DEL001", supervisor_id:"SUP001", name:"محمد خالد",   phone:"0501111111", status:"مقبول",        commission_rate:5, orders:120, vehicle_type:"موتوسيكل" },
-  { id:"DEL002", supervisor_id:"SUP001", name:"فاطمة حسن",   phone:"0502222222", status:"قيد المراجعة", commission_rate:4, orders:0,   vehicle_type:"دراجة هوائية" },
-  { id:"DEL003", supervisor_id:"SUP002", name:"عمر سالم",    phone:"0503333333", status:"مقبول",        commission_rate:6, orders:85,  vehicle_type:"موتوسيكل" },
-  { id:"DEL004", supervisor_id:"SUP002", name:"نور إبراهيم", phone:"0504444444", status:"مرفوض",        commission_rate:0, orders:0,   vehicle_type:"دراجة هوائية" },
+  { id:"DEL001", supervisor_id:"SUP001", name:"ظ…ط­ظ…ط¯ ط®ط§ظ„ط¯",   phone:"0501111111", status:"ظ…ظ‚ط¨ظˆظ„",        commission_rate:5, orders:120, vehicle_type:"ظ…ظˆطھظˆط³ظٹظƒظ„" },
+  { id:"DEL002", supervisor_id:"SUP001", name:"ظپط§ط·ظ…ط© ط­ط³ظ†",   phone:"0502222222", status:"ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©", commission_rate:4, orders:0,   vehicle_type:"ط¯ط±ط§ط¬ط© ظ‡ظˆط§ط¦ظٹط©" },
+  { id:"DEL003", supervisor_id:"SUP002", name:"ط¹ظ…ط± ط³ط§ظ„ظ…",    phone:"0503333333", status:"ظ…ظ‚ط¨ظˆظ„",        commission_rate:6, orders:85,  vehicle_type:"ظ…ظˆطھظˆط³ظٹظƒظ„" },
+  { id:"DEL004", supervisor_id:"SUP002", name:"ظ†ظˆط± ط¥ط¨ط±ط§ظ‡ظٹظ…", phone:"0504444444", status:"ظ…ط±ظپظˆط¶",        commission_rate:0, orders:0,   vehicle_type:"ط¯ط±ط§ط¬ط© ظ‡ظˆط§ط¦ظٹط©" },
 ];
 
 const genId = (p) => p + Math.random().toString(36).substr(2,6).toUpperCase();
 const fmtTime = (ts) => {
   const diff = (Date.now()-ts)/1000;
-  if(diff<60)    return "الآن";
-  if(diff<3600)  return `منذ ${Math.floor(diff/60)} د`;
-  if(diff<86400) return `منذ ${Math.floor(diff/3600)} س`;
+  if(diff<60)    return "ط§ظ„ط¢ظ†";
+  if(diff<3600)  return `ظ…ظ†ط° ${Math.floor(diff/60)} ط¯`;
+  if(diff<86400) return `ظ…ظ†ط° ${Math.floor(diff/3600)} ط³`;
   return new Date(ts).toLocaleDateString("ar-EG");
 };
 const fmtFull = (ts) => new Date(ts).toLocaleString("ar-EG",{hour:"2-digit",minute:"2-digit",day:"numeric",month:"short"});
 
-// ─── Design Tokens ────────────────────────────────────────────────────────
+// â”€â”€â”€ Design Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
   bg:"#080f1d", panel:"#0d1526", card:"#141b2d", border:"#1e2d45",
   blue:"#2563eb", green:"#22c55e", red:"#ef4444", yellow:"#eab308",
   purple:"#a855f7", muted:"#8899bb", text:"#e2e8f0", dark:"#0a1220",
 };
 const STATUS_CFG = {
-  "مقبول":        {bg:"#0d3d2b",text:"#22c55e",border:"#16a34a"},
-  "مرفوض":        {bg:"#3d0d0d",text:"#ef4444",border:"#dc2626"},
-  "قيد المراجعة": {bg:"#2d2a0d",text:"#eab308",border:"#ca8a04"},
+  "ظ…ظ‚ط¨ظˆظ„":        {bg:"#0d3d2b",text:"#22c55e",border:"#16a34a"},
+  "ظ…ط±ظپظˆط¶":        {bg:"#3d0d0d",text:"#ef4444",border:"#dc2626"},
+  "ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©": {bg:"#2d2a0d",text:"#eab308",border:"#ca8a04"},
 };
 
-// ─── UI Primitives ────────────────────────────────────────────────────────
+// â”€â”€â”€ UI Primitives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Badge({status}){
-  const s=STATUS_CFG[status]||STATUS_CFG["قيد المراجعة"];
+  const s=STATUS_CFG[status]||STATUS_CFG["ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©"];
   return <span style={{background:s.bg,color:s.text,border:`1px solid ${s.border}`,padding:"3px 11px",borderRadius:20,fontSize:12,fontWeight:700}}>{status}</span>;
 }
 function Card({children,style={}}){
@@ -247,16 +247,16 @@ function PhotoBox({label,hint,required,value,onChange}){
         aspectRatio:"1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
         overflow:"hidden",position:"relative",minHeight:130}}>
         {busy
-          ? <div style={{color:C.muted,fontSize:12}}>⏳ جاري المعالجة...</div>
+          ? <div style={{color:C.muted,fontSize:12}}>âڈ³ ط¬ط§ط±ظٹ ط§ظ„ظ…ط¹ط§ظ„ط¬ط©...</div>
           : value
             ? <>
                 <img src={value} alt={label} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
                 <div onClick={()=>onChange(null)}
                   style={{position:"absolute",top:6,left:6,background:"#dc262699",borderRadius:"50%",
                     width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",
-                    cursor:"pointer",fontSize:13,color:"#fff",fontWeight:700}}>✕</div>
+                    cursor:"pointer",fontSize:13,color:"#fff",fontWeight:700}}>âœ•</div>
               </>
-            : <><div style={{fontSize:26,marginBottom:6}}>📷</div>
+            : <><div style={{fontSize:26,marginBottom:6}}>ًں“·</div>
                 <div style={{color:C.muted,fontSize:11,textAlign:"center",padding:"0 8px"}}>{hint}</div></>
         }
       </div>
@@ -266,12 +266,12 @@ function PhotoBox({label,hint,required,value,onChange}){
           <button onClick={()=>camRef.current?.click()}
             style={{flex:1,background:`${C.blue}22`,color:C.blue,border:`1px solid ${C.blue}44`,
               borderRadius:8,padding:"8px 6px",cursor:"pointer",fontSize:12,fontWeight:700}}>
-            📸 الكاميرا
+            ًں“¸ ط§ظ„ظƒط§ظ…ظٹط±ط§
           </button>
           <button onClick={()=>galRef.current?.click()}
             style={{flex:1,background:C.border,color:C.muted,border:`1px solid ${C.border}`,
               borderRadius:8,padding:"8px 6px",cursor:"pointer",fontSize:12,fontWeight:700}}>
-            🖼️ المعرض
+            ًں–¼ï¸ڈ ط§ظ„ظ…ط¹ط±ط¶
           </button>
         </div>
       )}
@@ -284,8 +284,8 @@ function PhotoBox({label,hint,required,value,onChange}){
   );
 }
 
-// ─── Loading Spinner ──────────────────────────────────────────────────────
-function Spinner({text="جاري التحميل..."}){
+// â”€â”€â”€ Loading Spinner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function Spinner({text="ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„..."}){
   return(
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 20px",gap:16}}>
       <div style={{width:44,height:44,border:`4px solid ${C.border}`,borderTop:`4px solid ${C.blue}`,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
@@ -295,7 +295,7 @@ function Spinner({text="جاري التحميل..."}){
   );
 }
 
-// ─── Notification Bell ────────────────────────────────────────────────────
+// â”€â”€â”€ Notification Bell â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function NotifBell({notifs,onRead,onClear}){
   const [open,setOpen]=useState(false);
   const unread=notifs.filter(n=>!n.is_read).length;
@@ -304,25 +304,25 @@ function NotifBell({notifs,onRead,onClear}){
     const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
     document.addEventListener("mousedown",h);return()=>document.removeEventListener("mousedown",h);
   },[]);
-  const icons={success:"✅",error:"❌",info:"📦",message:"💬"};
+  const icons={success:"âœ…",error:"â‌Œ",info:"ًں“¦",message:"ًں’¬"};
   return(
     <div ref={ref} style={{position:"relative"}}>
       <div onClick={()=>{setOpen(o=>!o);if(!open)onRead();}} style={{cursor:"pointer",position:"relative",userSelect:"none",fontSize:22}}>
-        🔔
+        ًں””
         {unread>0&&<span style={{position:"absolute",top:-6,left:-6,background:C.red,color:"#fff",borderRadius:"50%",width:18,height:18,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{unread}</span>}
       </div>
       {open&&(
         <div style={{position:"absolute",top:38,left:"50%",transform:"translateX(-50%)",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,width:310,boxShadow:"0 8px 32px #000a",zIndex:999,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span style={{fontWeight:700,color:C.text,fontSize:14}}>الإشعارات</span>
-            <span onClick={onClear} style={{color:C.muted,fontSize:12,cursor:"pointer"}}>مسح الكل</span>
+            <span style={{fontWeight:700,color:C.text,fontSize:14}}>ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ</span>
+            <span onClick={onClear} style={{color:C.muted,fontSize:12,cursor:"pointer"}}>ظ…ط³ط­ ط§ظ„ظƒظ„</span>
           </div>
           <div style={{maxHeight:300,overflowY:"auto"}}>
             {notifs.length===0
-              ?<div style={{padding:"24px",textAlign:"center",color:C.muted,fontSize:13}}>لا توجد إشعارات</div>
+              ?<div style={{padding:"24px",textAlign:"center",color:C.muted,fontSize:13}}>ظ„ط§ طھظˆط¬ط¯ ط¥ط´ط¹ط§ط±ط§طھ</div>
               :notifs.map(n=>(
                 <div key={n.id} style={{padding:"11px 14px",borderBottom:`1px solid ${C.border}22`,background:n.is_read?"transparent":"#1e2d4518",display:"flex",gap:10}}>
-                  <span style={{fontSize:17,flexShrink:0}}>{icons[n.type]||"📌"}</span>
+                  <span style={{fontSize:17,flexShrink:0}}>{icons[n.type]||"ًں“Œ"}</span>
                   <div style={{flex:1}}>
                     <div style={{color:C.text,fontSize:13}}>{n.message}</div>
                     <div style={{color:C.muted,fontSize:11,marginTop:2}}>{fmtTime(n.created_at)}</div>
@@ -338,7 +338,7 @@ function NotifBell({notifs,onRead,onClear}){
   );
 }
 
-// ══════════════════ LOGIN ══════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ LOGIN â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function LoginScreen({onLogin}){
   const [phone,setPhone]=useState("");
   const [pass,setPass]=useState("");
@@ -347,7 +347,7 @@ function LoginScreen({onLogin}){
   const [loading,setLoading]=useState(false);
 
   const attempt=async()=>{
-    if(!phone.trim()||!pass.trim()){setErr("أدخل رقم الهاتف وكلمة المرور");return;}
+    if(!phone.trim()||!pass.trim()){setErr("ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±");return;}
     setLoading(true);setErr("");
     try{
       // Check ops manager first (local check, no DB needed)
@@ -359,9 +359,9 @@ function LoginScreen({onLogin}){
       if(localSup){ onLogin(localSup); return; }
       // Then check DB
       const row=await dbSelectOne("supervisors",{phone:phone.trim(),password_hash:pass.trim()});
-      if(!row){setErr("رقم الهاتف أو كلمة المرور غير صحيحة");}
+      if(!row){setErr("ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط£ظˆ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط©");}
       else onLogin(row);
-    }catch(e){setErr("حدث خطأ، حاول مجدداً");}
+    }catch(e){setErr("ط­ط¯ط« ط®ط·ط£طŒ ط­ط§ظˆظ„ ظ…ط¬ط¯ط¯ط§ظ‹");}
     finally{setLoading(false);}
   };
 
@@ -371,30 +371,30 @@ function LoginScreen({onLogin}){
         <div style={{textAlign:"center",marginBottom:32}}>
           <div style={{width:64,height:64,background:C.blue,borderRadius:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:30,fontWeight:900,color:"#fff",marginBottom:14}}>M</div>
           <div style={{fontSize:24,fontWeight:800,color:C.text}}>ManageDesk</div>
-          <div style={{color:C.muted,fontSize:13,marginTop:4}}>نظام إدارة المناديب</div>
+          <div style={{color:C.muted,fontSize:13,marginTop:4}}>ظ†ط¸ط§ظ… ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†ط§ط¯ظٹط¨</div>
         </div>
         <Card>
-          <div style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:20,textAlign:"center"}}>تسجيل الدخول</div>
-          <Inp label="رقم الهاتف" type="tel" placeholder="05XXXXXXXX" value={phone} onChange={e=>setPhone(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()}/>
+          <div style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:20,textAlign:"center"}}>طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„</div>
+          <Inp label="ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ" type="tel" placeholder="05XXXXXXXX" value={phone} onChange={e=>setPhone(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()}/>
           <div style={{marginBottom:14}}>
-            <label style={{display:"block",color:C.muted,fontSize:12,marginBottom:5}}>كلمة المرور</label>
+            <label style={{display:"block",color:C.muted,fontSize:12,marginBottom:5}}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</label>
             <div style={{position:"relative"}}>
-              <input type={show?"text":"password"} placeholder="••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()}
+              <input type={show?"text":"password"} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()}
                 style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"9px 40px 9px 13px",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
-              <span onClick={()=>setShow(s=>!s)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:C.muted,userSelect:"none"}}>{show?"🙈":"👁️"}</span>
+              <span onClick={()=>setShow(s=>!s)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:C.muted,userSelect:"none"}}>{show?"ًں™ˆ":"ًں‘پï¸ڈ"}</span>
             </div>
           </div>
           {err&&<div style={{background:"#3d0d0d",border:`1px solid ${C.red}`,borderRadius:8,padding:"10px 14px",marginBottom:14,color:C.red,fontSize:13}}>{err}</div>}
           <Btn onClick={attempt} disabled={loading} style={{width:"100%",padding:"12px",fontSize:15}}>
-            {loading?"جاري التحقق...":"دخول →"}
+            {loading?"ط¬ط§ط±ظٹ ط§ظ„طھط­ظ‚ظ‚...":"ط¯ط®ظˆظ„ â†’"}
           </Btn>
           <div style={{marginTop:16,background:C.panel,borderRadius:8,padding:"12px 14px"}}>
-            <div style={{color:C.muted,fontSize:11,marginBottom:8,fontWeight:600}}>حسابات تجريبية:</div>
+            <div style={{color:C.muted,fontSize:11,marginBottom:8,fontWeight:600}}>ط­ط³ط§ط¨ط§طھ طھط¬ط±ظٹط¨ظٹط©:</div>
             {[...SEED_SUPERVISORS,OPS_MANAGER].map(s=>(
               <div key={s.id} onClick={()=>{setPhone(s.phone);setPass(s.password_hash);}} style={{fontSize:12,color:"#556",marginBottom:4,cursor:"pointer",padding:"4px 8px",borderRadius:6,transition:"background .15s"}}
                 onMouseEnter={e=>e.currentTarget.style.background=C.border}
                 onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                {s.role==="ops"?"⚙️":"👤"} <strong style={{color:C.muted}}>{s.name}</strong> — 📱{s.phone} | 🔑{s.password_hash}
+                {s.role==="ops"?"âڑ™ï¸ڈ":"ًں‘¤"} <strong style={{color:C.muted}}>{s.name}</strong> â€” ًں“±{s.phone} | ًں”‘{s.password_hash}
               </div>
             ))}
           </div>
@@ -404,18 +404,18 @@ function LoginScreen({onLogin}){
   );
 }
 
-// ══════════════════ MAIN APP ══════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ MAIN APP â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 const SUP_TABS=[
-  {id:"dashboard", label:"📊 لوحة التحكم"},
-  {id:"upload_doc",label:"📄 إضافة مندوب"},
-  {id:"delegates", label:"👥 المناديب"},
-  {id:"orders",    label:"📦 الأوردرات"},
-  {id:"messages",  label:"💬 الرسائل"},
-  {id:"supervisor",label:"🏢 المشرفون"},
+  {id:"dashboard", label:"ًں“ٹ ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…"},
+  {id:"upload_doc",label:"ًں“„ ط¥ط¶ط§ظپط© ظ…ظ†ط¯ظˆط¨"},
+  {id:"delegates", label:"ًں‘¥ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨"},
+  {id:"orders",    label:"ًں“¦ ط§ظ„ط£ظˆط±ط¯ط±ط§طھ"},
+  {id:"messages",  label:"ًں’¬ ط§ظ„ط±ط³ط§ط¦ظ„"},
+  {id:"supervisor",label:"ًںڈ¢ ط§ظ„ظ…ط´ط±ظپظˆظ†"},
 ];
 const OPS_TABS=[
-  {id:"ops_dashboard",label:"📊 لوحة المدير"},
-  {id:"messages",     label:"💬 الرسائل"},
+  {id:"ops_dashboard",label:"ًں“ٹ ظ„ظˆط­ط© ط§ظ„ظ…ط¯ظٹط±"},
+  {id:"messages",     label:"ًں’¬ ط§ظ„ط±ط³ط§ط¦ظ„"},
 ];
 
 export default function App(){
@@ -432,7 +432,7 @@ export default function App(){
     setToast({msg,type});setTimeout(()=>setToast(null),3500);
   },[]);
 
-  // ── Seed DB on first load ──
+  // â”€â”€ Seed DB on first load â”€â”€
   const seedIfEmpty=async()=>{
     const{data:sups}=await (async()=>{ const d=await dbSelect("supervisors"); return {data:d}; })();
     if(!sups||sups.length===0){
@@ -440,11 +440,11 @@ export default function App(){
       await dbInsert("delegates", SEED_DELEGATES);
       const now=Date.now();
       await dbInsert("conversations", [{id:"CONV001",participants:["SUP001","OPS001"]},{id:"CONV002",participants:["SUP002","OPS001"]}]);
-      await dbInsert("messages", [{id:"MSG1",conv_id:"CONV001",sender_id:"OPS001",content:"مرحباً أحمد، كيف حال فريق المناديب لديك؟",created_at:now-7200000,read_by:["OPS001"]},{id:"MSG2",conv_id:"CONV001",sender_id:"SUP001",content:"الحمد لله، لدينا مندوبان مقبولان ويعملان بشكل ممتاز 💪",created_at:now-3600000,read_by:["SUP001","OPS001"]},{id:"MSG3",conv_id:"CONV002",sender_id:"OPS001",content:"سارة، هل تحتاجين مساعدة في مراجعة المناديب الجدد؟",created_at:now-86400000,read_by:["OPS001"]}]);
+      await dbInsert("messages", [{id:"MSG1",conv_id:"CONV001",sender_id:"OPS001",content:"ظ…ط±ط­ط¨ط§ظ‹ ط£ط­ظ…ط¯طŒ ظƒظٹظپ ط­ط§ظ„ ظپط±ظٹظ‚ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨ ظ„ط¯ظٹظƒطں",created_at:now-7200000,read_by:["OPS001"]},{id:"MSG2",conv_id:"CONV001",sender_id:"SUP001",content:"ط§ظ„ط­ظ…ط¯ ظ„ظ„ظ‡طŒ ظ„ط¯ظٹظ†ط§ ظ…ظ†ط¯ظˆط¨ط§ظ† ظ…ظ‚ط¨ظˆظ„ط§ظ† ظˆظٹط¹ظ…ظ„ط§ظ† ط¨ط´ظƒظ„ ظ…ظ…طھط§ط² ًں’ھ",created_at:now-3600000,read_by:["SUP001","OPS001"]},{id:"MSG3",conv_id:"CONV002",sender_id:"OPS001",content:"ط³ط§ط±ط©طŒ ظ‡ظ„ طھط­طھط§ط¬ظٹظ† ظ…ط³ط§ط¹ط¯ط© ظپظٹ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ظ†ط§ط¯ظٹط¨ ط§ظ„ط¬ط¯ط¯طں",created_at:now-86400000,read_by:["OPS001"]}]);
     }
   };
 
-  // ── Load all data ──
+  // â”€â”€ Load all data â”€â”€
   const loadAll=async(user)=>{
     setLoading(true);
     try{
@@ -476,7 +476,7 @@ export default function App(){
     await loadAll(user);
   };
 
-  // ── Real-time subscriptions ──
+  // â”€â”€ Real-time subscriptions â”€â”€
   useEffect(()=>{
     if(!currentUser) return;
     const msgSub=sb.channel("messages-channel")
@@ -498,7 +498,7 @@ export default function App(){
   if(!currentUser) return <LoginScreen onLogin={handleLogin}/>;
   if(loading) return(
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}} dir="rtl">
-      <Spinner text="جاري تحميل البيانات..."/>
+      <Spinner text="ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ..."/>
     </div>
   );
 
@@ -507,10 +507,10 @@ export default function App(){
   const myConvs=conversations;
   const unreadMsgs=myConvs.reduce((s,c)=>s+c.messages.filter(m=>m.sender_id!==currentUser.id&&!(m.read_by||[]).includes(currentUser.id)).length,0);
   const myDelegates=delegates;
-  const accepted=myDelegates.filter(d=>d.status==="مقبول");
+  const accepted=myDelegates.filter(d=>d.status==="ظ…ظ‚ط¨ظˆظ„");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
 
-  // ── DB Actions ──
+  // â”€â”€ DB Actions â”€â”€
   const addNotifDB=async(supId,message,type="info")=>{
     const n={id:genId("N"),sup_id:supId,message,type,created_at:Date.now(),is_read:false};
     await dbInsert("notifications", n);
@@ -531,9 +531,9 @@ export default function App(){
     const d=delegates.find(x=>x.id===delId);if(!d)return;
     await dbUpdate("delegates",{status:newStatus},{id:delId});
     setDelegatesState(prev=>prev.map(x=>x.id===delId?{...x,status:newStatus}:x));
-    const msg=newStatus==="مقبول"?`✅ تم قبول المندوب "${d.name}" (${d.id})`:`❌ تم رفض المندوب "${d.name}" (${d.id})`;
-    await addNotifDB(d.supervisor_id,msg,newStatus==="مقبول"?"success":"error");
-    notify(msg,newStatus==="مقبول"?"success":"error");
+    const msg=newStatus==="ظ…ظ‚ط¨ظˆظ„"?`âœ… طھظ… ظ‚ط¨ظˆظ„ ط§ظ„ظ…ظ†ط¯ظˆط¨ "${d.name}" (${d.id})`:`â‌Œ طھظ… ط±ظپط¶ ط§ظ„ظ…ظ†ط¯ظˆط¨ "${d.name}" (${d.id})`;
+    await addNotifDB(d.supervisor_id,msg,newStatus==="ظ…ظ‚ط¨ظˆظ„"?"success":"error");
+    notify(msg,newStatus==="ظ…ظ‚ط¨ظˆظ„"?"success":"error");
   };
 
   const setDelegates=async(updater)=>{
@@ -553,23 +553,23 @@ export default function App(){
           <div style={{width:38,height:38,background:C.blue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff"}}>M</div>
           <div>
             <div style={{fontWeight:800,fontSize:16,color:C.text}}>ManageDesk</div>
-            <div style={{fontSize:11,color:"#334"}}>نظام إدارة المناديب</div>
+            <div style={{fontSize:11,color:"#334"}}>ظ†ط¸ط§ظ… ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظ†ط§ط¯ظٹط¨</div>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:18}}>
           <div onClick={()=>setTab("messages")} style={{cursor:"pointer",position:"relative",fontSize:22,userSelect:"none"}}>
-            💬
+            ًں’¬
             {unreadMsgs>0&&<span style={{position:"absolute",top:-6,left:-6,background:C.green,color:"#fff",borderRadius:"50%",width:18,height:18,fontSize:11,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{unreadMsgs}</span>}
           </div>
           {!isOps&&<NotifBell notifs={myNotifs} onRead={markNotifsRead} onClear={clearNotifs}/>}
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:34,height:34,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{isOps?"⚙️":"👤"}</div>
+            <div style={{width:34,height:34,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{isOps?"âڑ™ï¸ڈ":"ًں‘¤"}</div>
             <div>
               <div style={{fontWeight:700,fontSize:13,color:C.text}}>{currentUser.name}</div>
-              <div style={{fontSize:11,color:isOps?C.purple:C.muted}}>{isOps?"مدير التشغيل":"مشرف | "+currentUser.id}</div>
+              <div style={{fontSize:11,color:isOps?C.purple:C.muted}}>{isOps?"ظ…ط¯ظٹط± ط§ظ„طھط´ط؛ظٹظ„":"ظ…ط´ط±ظپ | "+currentUser.id}</div>
             </div>
           </div>
-          <Btn variant="ghost" onClick={()=>{setCurrentUser(null);setDelegatesState([]);setNotifs([]);setConversations([]);}} style={{padding:"6px 12px",fontSize:12}}>خروج ↩</Btn>
+          <Btn variant="ghost" onClick={()=>{setCurrentUser(null);setDelegatesState([]);setNotifs([]);setConversations([]);}} style={{padding:"6px 12px",fontSize:12}}>ط®ط±ظˆط¬ â†©</Btn>
         </div>
       </div>
 
@@ -597,7 +597,7 @@ export default function App(){
   );
 }
 
-// ══════════════════ MESSAGING ══════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ MESSAGING â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function MessagingTab({currentUser,conversations,setConversations,supervisors,addNotifDB}){
   const isOps=currentUser.role==="ops";
   const [activeConvId,setActiveConvId]=useState(conversations[0]?.id||null);
@@ -647,7 +647,7 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
       const conv=conversations.find(c=>c.id===activeConvId);
       const otherId=conv?.participants.find(p=>p!==currentUser.id);
       if(otherId&&otherId!==OPS_MANAGER.id){
-        await addNotifDB(otherId,`💬 رسالة جديدة من ${currentUser.name}: "${draft.trim().slice(0,40)}"...`,"message");
+        await addNotifDB(otherId,`ًں’¬ ط±ط³ط§ظ„ط© ط¬ط¯ظٹط¯ط© ظ…ظ† ${currentUser.name}: "${draft.trim().slice(0,40)}"...`,"message");
       }
       setDraft("");inputRef.current?.focus();
     }finally{setSending(false);}
@@ -669,24 +669,24 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
       <div style={{width:280,flexShrink:0,background:C.panel,borderLeft:`1px solid ${C.border}`,display:"flex",flexDirection:"column"}}>
         <div style={{padding:"16px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <div style={{fontWeight:700,color:C.text,fontSize:15}}>💬 الرسائل</div>
-            {totalUnread>0&&<div style={{fontSize:11,color:C.blue,marginTop:2}}>{totalUnread} غير مقروءة</div>}
+            <div style={{fontWeight:700,color:C.text,fontSize:15}}>ًں’¬ ط§ظ„ط±ط³ط§ط¦ظ„</div>
+            {totalUnread>0&&<div style={{fontSize:11,color:C.blue,marginTop:2}}>{totalUnread} ط؛ظٹط± ظ…ظ‚ط±ظˆط،ط©</div>}
           </div>
-          {isOps&&<button onClick={()=>setShowNew(s=>!s)} style={{background:`${C.blue}22`,color:C.blue,border:`1px solid ${C.blue}44`,borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:700}}>+ جديد</button>}
+          {isOps&&<button onClick={()=>setShowNew(s=>!s)} style={{background:`${C.blue}22`,color:C.blue,border:`1px solid ${C.blue}44`,borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:13,fontWeight:700}}>+ ط¬ط¯ظٹط¯</button>}
         </div>
         {showNew&&isOps&&(
           <div style={{padding:"12px 16px",background:C.dark,borderBottom:`1px solid ${C.border}`}}>
-            <Sel label="محادثة مع" value={newSupId} onChange={e=>setNewSupId(e.target.value)}
-              options={[{value:"",label:"-- اختر مشرفاً --"},...supervisors.map(s=>({value:s.id,label:s.name}))]}/>
+            <Sel label="ظ…ط­ط§ط¯ط«ط© ظ…ط¹" value={newSupId} onChange={e=>setNewSupId(e.target.value)}
+              options={[{value:"",label:"-- ط§ط®طھط± ظ…ط´ط±ظپط§ظ‹ --"},...supervisors.map(s=>({value:s.id,label:s.name}))]}/>
             <div style={{display:"flex",gap:8}}>
-              <Btn onClick={startNewConv} disabled={!newSupId} style={{flex:1,padding:"7px",fontSize:12}}>بدء</Btn>
-              <Btn variant="ghost" onClick={()=>setShowNew(false)} style={{padding:"7px 12px",fontSize:12}}>إلغاء</Btn>
+              <Btn onClick={startNewConv} disabled={!newSupId} style={{flex:1,padding:"7px",fontSize:12}}>ط¨ط¯ط،</Btn>
+              <Btn variant="ghost" onClick={()=>setShowNew(false)} style={{padding:"7px 12px",fontSize:12}}>ط¥ظ„ط؛ط§ط،</Btn>
             </div>
           </div>
         )}
         <div style={{flex:1,overflowY:"auto"}}>
           {conversations.length===0
-            ?<div style={{padding:"30px 18px",textAlign:"center",color:C.muted,fontSize:13}}>لا توجد محادثات</div>
+            ?<div style={{padding:"30px 18px",textAlign:"center",color:C.muted,fontSize:13}}>ظ„ط§ طھظˆط¬ط¯ ظ…ط­ط§ط¯ط«ط§طھ</div>
             :conversations.map(conv=>{
               const other=getOther(conv);
               const last=conv.messages[conv.messages.length-1];
@@ -698,12 +698,12 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                     <div style={{display:"flex",alignItems:"center",gap:10}}>
                       <div style={{width:38,height:38,background:isActive?`${C.blue}33`:C.border,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>
-                        {other.role==="ops"?"⚙️":"👤"}
+                        {other.role==="ops"?"âڑ™ï¸ڈ":"ًں‘¤"}
                       </div>
                       <div>
                         <div style={{color:isActive?C.text:"#aab",fontWeight:unread>0?700:500,fontSize:14}}>{other.name}</div>
                         <div style={{color:C.muted,fontSize:11,marginTop:2,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                          {last?(last.sender_id===currentUser.id?"أنت: ":"")+last.content:"لا توجد رسائل"}
+                          {last?(last.sender_id===currentUser.id?"ط£ظ†طھ: ":"")+last.content:"ظ„ط§ طھظˆط¬ط¯ ط±ط³ط§ط¦ظ„"}
                         </div>
                       </div>
                     </div>
@@ -718,10 +718,10 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
           }
         </div>
         <div style={{padding:"12px 18px",borderTop:`1px solid ${C.border}`,background:C.dark,display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:32,height:32,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{currentUser.role==="ops"?"⚙️":"👤"}</div>
+          <div style={{width:32,height:32,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{currentUser.role==="ops"?"âڑ™ï¸ڈ":"ًں‘¤"}</div>
           <div style={{flex:1}}>
             <div style={{color:C.text,fontSize:12,fontWeight:600}}>{currentUser.name}</div>
-            <div style={{color:C.muted,fontSize:10}}>{currentUser.role==="ops"?"مدير التشغيل":"مشرف"}</div>
+            <div style={{color:C.muted,fontSize:10}}>{currentUser.role==="ops"?"ظ…ط¯ظٹط± ط§ظ„طھط´ط؛ظٹظ„":"ظ…ط´ط±ظپ"}</div>
           </div>
           <div style={{width:8,height:8,borderRadius:"50%",background:C.green}}/>
         </div>
@@ -733,20 +733,20 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
         return(
           <div style={{flex:1,display:"flex",flexDirection:"column",background:C.bg}}>
             <div style={{padding:"14px 22px",borderBottom:`1px solid ${C.border}`,background:C.panel,display:"flex",alignItems:"center",gap:14}}>
-              <div style={{width:42,height:42,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{other.role==="ops"?"⚙️":"👤"}</div>
+              <div style={{width:42,height:42,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{other.role==="ops"?"âڑ™ï¸ڈ":"ًں‘¤"}</div>
               <div>
                 <div style={{fontWeight:700,color:C.text,fontSize:15}}>{other.name}</div>
                 <div style={{color:C.green,fontSize:12,display:"flex",alignItems:"center",gap:5}}>
-                  <span style={{width:7,height:7,borderRadius:"50%",background:C.green,display:"inline-block"}}/>متصل
+                  <span style={{width:7,height:7,borderRadius:"50%",background:C.green,display:"inline-block"}}/>ظ…طھطµظ„
                 </div>
               </div>
-              <div style={{marginRight:"auto",color:C.muted,fontSize:12}}>{activeConv.messages.length} رسالة</div>
+              <div style={{marginRight:"auto",color:C.muted,fontSize:12}}>{activeConv.messages.length} ط±ط³ط§ظ„ط©</div>
             </div>
             <div style={{flex:1,overflowY:"auto",padding:"20px 24px",display:"flex",flexDirection:"column",gap:12}}>
               {activeConv.messages.length===0&&(
                 <div style={{textAlign:"center",padding:"60px 20px",color:C.muted}}>
-                  <div style={{fontSize:48,marginBottom:12}}>👋</div>
-                  <div>ابدأ المحادثة مع {other.name}</div>
+                  <div style={{fontSize:48,marginBottom:12}}>ًں‘‹</div>
+                  <div>ط§ط¨ط¯ط£ ط§ظ„ظ…ط­ط§ط¯ط«ط© ظ…ط¹ {other.name}</div>
                 </div>
               )}
               {activeConv.messages.map((msg,idx)=>{
@@ -762,17 +762,17 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
                       </div>
                     )}
                     <div style={{display:"flex",justifyContent:isMine?"flex-start":"flex-end",gap:10}}>
-                      {!isMine&&<div style={{width:34,height:34,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,alignSelf:"flex-end"}}>{other.role==="ops"?"⚙️":"👤"}</div>}
+                      {!isMine&&<div style={{width:34,height:34,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,alignSelf:"flex-end"}}>{other.role==="ops"?"âڑ™ï¸ڈ":"ًں‘¤"}</div>}
                       <div style={{maxWidth:"68%"}}>
                         <div style={{background:isMine?`${C.blue}22`:C.card,border:`1px solid ${isMine?`${C.blue}44`:C.border}`,borderRadius:isMine?"14px 14px 14px 4px":"14px 14px 4px 14px",padding:"10px 14px",color:C.text,fontSize:14,lineHeight:1.6,wordBreak:"break-word"}}>
                           {msg.content}
                         </div>
                         <div style={{display:"flex",justifyContent:isMine?"flex-start":"flex-end",alignItems:"center",gap:6,marginTop:3}}>
                           <span style={{color:C.muted,fontSize:10}}>{fmtFull(msg.created_at)}</span>
-                          {isMine&&<span style={{fontSize:11,color:(msg.read_by||[]).length>1?C.blue:C.muted}}>{(msg.read_by||[]).length>1?"✓✓":"✓"}</span>}
+                          {isMine&&<span style={{fontSize:11,color:(msg.read_by||[]).length>1?C.blue:C.muted}}>{(msg.read_by||[]).length>1?"âœ“âœ“":"âœ“"}</span>}
                         </div>
                       </div>
-                      {isMine&&<div style={{width:34,height:34,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,alignSelf:"flex-end"}}>{currentUser.role==="ops"?"⚙️":"👤"}</div>}
+                      {isMine&&<div style={{width:34,height:34,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,alignSelf:"flex-end"}}>{currentUser.role==="ops"?"âڑ™ï¸ڈ":"ًں‘¤"}</div>}
                     </div>
                   </div>
                 );
@@ -782,11 +782,11 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
             <div style={{padding:"14px 20px",borderTop:`1px solid ${C.border}`,background:C.panel,display:"flex",gap:12,alignItems:"flex-end"}}>
               <textarea ref={inputRef} rows={1} value={draft} onChange={e=>setDraft(e.target.value)}
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}}
-                placeholder={`اكتب رسالة لـ ${other.name}...`}
+                placeholder={`ط§ظƒطھط¨ ط±ط³ط§ظ„ط© ظ„ظ€ ${other.name}...`}
                 style={{flex:1,background:C.dark,border:`1px solid ${C.border}`,color:C.text,borderRadius:12,padding:"11px 15px",fontSize:14,outline:"none",resize:"none",fontFamily:"inherit",lineHeight:1.5,maxHeight:120,overflowY:"auto"}}/>
               <button onClick={sendMessage} disabled={!draft.trim()||sending}
                 style={{width:44,height:44,background:draft.trim()&&!sending?C.blue:"#1e2d45",color:"#fff",border:"none",borderRadius:12,cursor:draft.trim()&&!sending?"pointer":"not-allowed",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                {sending?"⏳":"➤"}
+                {sending?"âڈ³":"â‍¤"}
               </button>
             </div>
           </div>
@@ -795,9 +795,9 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
       :(
         <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:C.bg}}>
           <div style={{textAlign:"center",color:C.muted}}>
-            <div style={{fontSize:56,marginBottom:16}}>💬</div>
-            <div style={{fontSize:16,fontWeight:600,color:C.text,marginBottom:8}}>الرسائل الداخلية</div>
-            <div style={{fontSize:13}}>اختر محادثة من القائمة</div>
+            <div style={{fontSize:56,marginBottom:16}}>ًں’¬</div>
+            <div style={{fontSize:16,fontWeight:600,color:C.text,marginBottom:8}}>ط§ظ„ط±ط³ط§ط¦ظ„ ط§ظ„ط¯ط§ط®ظ„ظٹط©</div>
+            <div style={{fontSize:13}}>ط§ط®طھط± ظ…ط­ط§ط¯ط«ط© ظ…ظ† ط§ظ„ظ‚ط§ط¦ظ…ط©</div>
           </div>
         </div>
       )}
@@ -805,27 +805,27 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
   );
 }
 
-// ══════════════════ OPS DASHBOARD ════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ OPS DASHBOARD â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function OpsDashboard({delegates,supervisors,changeStatus}){
-  const accepted=delegates.filter(d=>d.status==="مقبول");
-  const pending=delegates.filter(d=>d.status==="قيد المراجعة");
+  const accepted=delegates.filter(d=>d.status==="ظ…ظ‚ط¨ظˆظ„");
+  const pending=delegates.filter(d=>d.status==="ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
   return(
     <div>
-      <h2 style={{color:C.text,margin:"0 0 20px",fontSize:20}}>📊 لوحة مدير التشغيل</h2>
+      <h2 style={{color:C.text,margin:"0 0 20px",fontSize:20}}>ًں“ٹ ظ„ظˆط­ط© ظ…ط¯ظٹط± ط§ظ„طھط´ط؛ظٹظ„</h2>
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:26}}>
-        <StatBox label="إجمالي المشرفين"  value={supervisors.length} accent={C.blue}/>
-        <StatBox label="إجمالي المناديب"  value={delegates.length}   accent={C.purple}/>
-        <StatBox label="المقبولون"         value={accepted.length}    accent={C.green}/>
-        <StatBox label="قيد المراجعة"      value={pending.length}     accent={C.yellow}/>
-        <StatBox label="إجمالي الأوردرات" value={totalOrders.toLocaleString()} accent="#f97316" sub="لجميع المناديب"/>
+        <StatBox label="ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط´ط±ظپظٹظ†"  value={supervisors.length} accent={C.blue}/>
+        <StatBox label="ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨"  value={delegates.length}   accent={C.purple}/>
+        <StatBox label="ط§ظ„ظ…ظ‚ط¨ظˆظ„ظˆظ†"         value={accepted.length}    accent={C.green}/>
+        <StatBox label="ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©"      value={pending.length}     accent={C.yellow}/>
+        <StatBox label="ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط£ظˆط±ط¯ط±ط§طھ" value={totalOrders.toLocaleString()} accent="#f97316" sub="ظ„ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨"/>
       </div>
       <Card>
-        <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>📋 تقرير المشرفين</h3>
+        <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>ًں“‹ طھظ‚ط±ظٹط± ط§ظ„ظ…ط´ط±ظپظٹظ†</h3>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["المشرف","ID","المناديب","المقبولون","قيد المراجعة","إجمالي الأوردرات"].map(h=>(
+              {["ط§ظ„ظ…ط´ط±ظپ","ID","ط§ظ„ظ…ظ†ط§ط¯ظٹط¨","ط§ظ„ظ…ظ‚ط¨ظˆظ„ظˆظ†","ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©","ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط£ظˆط±ط¯ط±ط§طھ"].map(h=>(
                 <th key={h} style={{padding:"10px 14px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>
               ))}
             </tr>
@@ -833,8 +833,8 @@ function OpsDashboard({delegates,supervisors,changeStatus}){
           <tbody>
             {supervisors.map(s=>{
               const md=delegates.filter(d=>d.supervisor_id===s.id);
-              const ma=md.filter(d=>d.status==="مقبول");
-              const mp=md.filter(d=>d.status==="قيد المراجعة");
+              const ma=md.filter(d=>d.status==="ظ…ظ‚ط¨ظˆظ„");
+              const mp=md.filter(d=>d.status==="ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©");
               return(
                 <tr key={s.id} style={{borderBottom:`1px solid ${C.border}22`}}>
                   <td style={{padding:"12px 14px",color:C.text,fontWeight:600}}>{s.name}</td>
@@ -853,23 +853,23 @@ function OpsDashboard({delegates,supervisors,changeStatus}){
   );
 }
 
-// ══════════════════ DASHBOARD ══════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ DASHBOARD â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
-  const pending=myDelegates.filter(d=>d.status==="قيد المراجعة");
-  const rejected=myDelegates.filter(d=>d.status==="مرفوض");
+  const pending=myDelegates.filter(d=>d.status==="ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©");
+  const rejected=myDelegates.filter(d=>d.status==="ظ…ط±ظپظˆط¶");
   return(
     <div>
-      <h2 style={{color:C.text,margin:"0 0 20px",fontSize:20}}>لوحة التحكم</h2>
+      <h2 style={{color:C.text,margin:"0 0 20px",fontSize:20}}>ظ„ظˆط­ط© ط§ظ„طھط­ظƒظ…</h2>
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:26}}>
-        <StatBox label="إجمالي المناديب"  value={myDelegates.length} accent={C.blue}/>
-        <StatBox label="المقبولون"         value={accepted.length}   accent={C.green}/>
-        <StatBox label="قيد المراجعة"      value={pending.length}    accent={C.yellow}/>
-        <StatBox label="المرفوضون"         value={rejected.length}   accent={C.red}/>
-        <StatBox label="إجمالي الأوردرات" value={totalOrders.toLocaleString()} accent={C.purple} sub="لجميع المقبولين"/>
+        <StatBox label="ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨"  value={myDelegates.length} accent={C.blue}/>
+        <StatBox label="ط§ظ„ظ…ظ‚ط¨ظˆظ„ظˆظ†"         value={accepted.length}   accent={C.green}/>
+        <StatBox label="ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©"      value={pending.length}    accent={C.yellow}/>
+        <StatBox label="ط§ظ„ظ…ط±ظپظˆط¶ظˆظ†"         value={rejected.length}   accent={C.red}/>
+        <StatBox label="ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط£ظˆط±ط¯ط±ط§طھ" value={totalOrders.toLocaleString()} accent={C.purple} sub="ظ„ط¬ظ…ظٹط¹ ط§ظ„ظ…ظ‚ط¨ظˆظ„ظٹظ†"/>
       </div>
       {accepted.length>0&&(
         <Card style={{marginBottom:22}}>
-          <h3 style={{margin:"0 0 16px",color:C.text,fontSize:15}}>📦 أوردرات المناديب المقبولين</h3>
+          <h3 style={{margin:"0 0 16px",color:C.text,fontSize:15}}>ًں“¦ ط£ظˆط±ط¯ط±ط§طھ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨ ط§ظ„ظ…ظ‚ط¨ظˆظ„ظٹظ†</h3>
           {accepted.map(d=>{
             const pct=totalOrders>0?(d.orders/totalOrders)*100:0;
             return(
@@ -881,7 +881,7 @@ function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
                 <div style={{background:C.border,borderRadius:6,height:8}}>
                   <div style={{background:`linear-gradient(90deg,${C.blue},${C.purple})`,height:8,borderRadius:6,width:`${pct}%`,transition:"width .5s"}}/>
                 </div>
-                <div style={{color:"#445",fontSize:11,marginTop:3}}>النسبة: <span style={{color:C.green}}>{d.commission_rate}%</span> | العمولة: <span style={{color:C.yellow}}>{((d.orders||0)*d.commission_rate/100).toFixed(0)} ج</span></div>
+                <div style={{color:"#445",fontSize:11,marginTop:3}}>ط§ظ„ظ†ط³ط¨ط©: <span style={{color:C.green}}>{d.commission_rate}%</span> | ط§ظ„ط¹ظ…ظˆظ„ط©: <span style={{color:C.yellow}}>{((d.orders||0)*d.commission_rate/100).toFixed(0)} ط¬</span></div>
               </div>
             );
           })}
@@ -889,106 +889,106 @@ function DashboardTab({myDelegates,accepted,totalOrders,changeStatus}){
       )}
       {pending.length>0&&(
         <Card>
-          <h3 style={{margin:"0 0 16px",color:C.text,fontSize:15}}>⏳ طلبات تحتاج مراجعة ({pending.length})</h3>
+          <h3 style={{margin:"0 0 16px",color:C.text,fontSize:15}}>âڈ³ ط·ظ„ط¨ط§طھ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط© ({pending.length})</h3>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {pending.map(d=>(
               <div key={d.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:C.panel,padding:"12px 16px",borderRadius:10,border:`1px solid ${C.border}`,flexWrap:"wrap",gap:10}}>
                 <div>
                   <div style={{fontWeight:600,color:C.text}}>{d.name} <span style={{color:C.muted,fontSize:12}}>({d.id})</span></div>
-                  <div style={{color:C.muted,fontSize:12,marginTop:2}}>{d.phone} | {d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"} {d.vehicle_type}</div>
+                  <div style={{color:C.muted,fontSize:12,marginTop:2}}>{d.phone} | {d.vehicle_type==="ظ…ظˆطھظˆط³ظٹظƒظ„"?"ًںڈچï¸ڈ":"ًںڑ²"} {d.vehicle_type}</div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <Btn variant="success" onClick={()=>changeStatus(d.id,"مقبول")}>قبول</Btn>
-                  <Btn variant="danger"  onClick={()=>changeStatus(d.id,"مرفوض")}>رفض</Btn>
+                  <Btn variant="success" onClick={()=>changeStatus(d.id,"ظ…ظ‚ط¨ظˆظ„")}>ظ‚ط¨ظˆظ„</Btn>
+                  <Btn variant="danger"  onClick={()=>changeStatus(d.id,"ظ…ط±ظپظˆط¶")}>ط±ظپط¶</Btn>
                 </div>
               </div>
             ))}
           </div>
         </Card>
       )}
-      {myDelegates.length===0&&<Card><div style={{textAlign:"center",padding:"40px",color:C.muted}}><div style={{fontSize:48,marginBottom:12}}>📭</div><div>لا يوجد مناديب حتى الآن.</div></div></Card>}
+      {myDelegates.length===0&&<Card><div style={{textAlign:"center",padding:"40px",color:C.muted}}><div style={{fontSize:48,marginBottom:12}}>ًں“­</div><div>ظ„ط§ ظٹظˆط¬ط¯ ظ…ظ†ط§ط¯ظٹط¨ ط­طھظ‰ ط§ظ„ط¢ظ†.</div></div></Card>}
     </div>
   );
 }
 
-// ══════════════════ UPLOAD DOC ════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ UPLOAD DOC â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function UploadDocTab({supervisors,setDelegates,notify,currentSup,addNotifDB}){
-  const [form,setForm]=useState({name:"",phone:"",supervisorId:currentSup.id,commissionRate:5,vehicleType:"موتوسيكل"});
+  const [form,setForm]=useState({name:"",phone:"",supervisorId:currentSup.id,commissionRate:5,vehicleType:"ظ…ظˆطھظˆط³ظٹظƒظ„"});
   const [docs,setDocs]=useState({selfie:null,national:null,license:null});
   const [saving,setSaving]=useState(false);
   const setDoc=(k,v)=>setDocs(prev=>({...prev,[k]:v}));
   const validate=()=>{
-    if(!form.name.trim()) {notify("❗ أدخل اسم المندوب","error");    return false;}
-    if(!form.phone.trim()){notify("❗ أدخل رقم الهاتف","error");     return false;}
-    if(!docs.selfie)      {notify("❗ صورة السيلفي مطلوبة","error"); return false;}
-    if(!docs.national)    {notify("❗ صورة البطاقة مطلوبة","error");return false;}
-    if(form.vehicleType==="موتوسيكل"&&!docs.license){notify("❗ صورة الرخصة مطلوبة","error");return false;}
+    if(!form.name.trim()) {notify("â‌— ط£ط¯ط®ظ„ ط§ط³ظ… ط§ظ„ظ…ظ†ط¯ظˆط¨","error");    return false;}
+    if(!form.phone.trim()){notify("â‌— ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ","error");     return false;}
+    if(!docs.selfie)      {notify("â‌— طµظˆط±ط© ط§ظ„ط³ظٹظ„ظپظٹ ظ…ط·ظ„ظˆط¨ط©","error"); return false;}
+    if(!docs.national)    {notify("â‌— طµظˆط±ط© ط§ظ„ط¨ط·ط§ظ‚ط© ظ…ط·ظ„ظˆط¨ط©","error");return false;}
+    if(form.vehicleType==="ظ…ظˆطھظˆط³ظٹظƒظ„"&&!docs.license){notify("â‌— طµظˆط±ط© ط§ظ„ط±ط®طµط© ظ…ط·ظ„ظˆط¨ط©","error");return false;}
     return true;
   };
   const handleSubmit=async()=>{
     if(!validate())return;
     setSaving(true);
-    const nd={id:genId("DEL"),supervisor_id:form.supervisorId,name:form.name.trim(),phone:form.phone.trim(),status:"قيد المراجعة",commission_rate:parseFloat(form.commissionRate)||5,orders:0,vehicle_type:form.vehicleType};
+    const nd={id:genId("DEL"),supervisor_id:form.supervisorId,name:form.name.trim(),phone:form.phone.trim(),status:"ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©",commission_rate:parseFloat(form.commissionRate)||5,orders:0,vehicle_type:form.vehicleType};
     try{
       const ok=await dbInsert("delegates",nd); const error=ok?null:"insert failed";
       if(error)throw error;
       setDelegates(prev=>[...(Array.isArray(prev)?prev:[]),nd]);
-      notify(`✅ تم إضافة ${form.name} — ID: ${nd.id}`);
-      setForm({name:"",phone:"",supervisorId:currentSup.id,commissionRate:5,vehicleType:"موتوسيكل"});
+      notify(`âœ… طھظ… ط¥ط¶ط§ظپط© ${form.name} â€” ID: ${nd.id}`);
+      setForm({name:"",phone:"",supervisorId:currentSup.id,commissionRate:5,vehicleType:"ظ…ظˆطھظˆط³ظٹظƒظ„"});
       setDocs({selfie:null,national:null,license:null});
-    }catch(e){notify("❌ حدث خطأ أثناء الحفظ","error");}
+    }catch(e){notify("â‌Œ ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط­ظپط¸","error");}
     finally{setSaving(false);}
   };
-  const needLicense=form.vehicleType==="موتوسيكل";
+  const needLicense=form.vehicleType==="ظ…ظˆطھظˆط³ظٹظƒظ„";
   return(
     <div style={{maxWidth:640}}>
-      <h2 style={{color:C.text,marginBottom:6}}>📄 إضافة مندوب جديد</h2>
-      <p style={{color:C.muted,marginBottom:22}}>أدخل البيانات وارفع المستندات المطلوبة</p>
+      <h2 style={{color:C.text,marginBottom:6}}>ًں“„ ط¥ط¶ط§ظپط© ظ…ظ†ط¯ظˆط¨ ط¬ط¯ظٹط¯</h2>
+      <p style={{color:C.muted,marginBottom:22}}>ط£ط¯ط®ظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆط§ط±ظپط¹ ط§ظ„ظ…ط³طھظ†ط¯ط§طھ ط§ظ„ظ…ط·ظ„ظˆط¨ط©</p>
       <Card>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-          <Inp label="اسم المندوب *" placeholder="محمد أحمد" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
-          <Inp label="رقم الهاتف *" placeholder="05XXXXXXXX" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
+          <Inp label="ط§ط³ظ… ط§ظ„ظ…ظ†ط¯ظˆط¨ *" placeholder="ظ…ط­ظ…ط¯ ط£ط­ظ…ط¯" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
+          <Inp label="ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ *" placeholder="05XXXXXXXX" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
-          <Sel label="المشرف" value={form.supervisorId} onChange={e=>setForm({...form,supervisorId:e.target.value})} options={supervisors.map(s=>({value:s.id,label:s.name}))}/>
-          <Inp label="نسبة العمولة (%)" type="number" min={0} max={100} value={form.commissionRate} onChange={e=>setForm({...form,commissionRate:e.target.value})}/>
-          <Sel label="وسيلة التوصيل" value={form.vehicleType} onChange={e=>setForm({...form,vehicleType:e.target.value})} options={[{value:"موتوسيكل",label:"🏍️ موتوسيكل"},{value:"دراجة هوائية",label:"🚲 دراجة هوائية"}]}/>
+          <Sel label="ط§ظ„ظ…ط´ط±ظپ" value={form.supervisorId} onChange={e=>setForm({...form,supervisorId:e.target.value})} options={supervisors.map(s=>({value:s.id,label:s.name}))}/>
+          <Inp label="ظ†ط³ط¨ط© ط§ظ„ط¹ظ…ظˆظ„ط© (%)" type="number" min={0} max={100} value={form.commissionRate} onChange={e=>setForm({...form,commissionRate:e.target.value})}/>
+          <Sel label="ظˆط³ظٹظ„ط© ط§ظ„طھظˆطµظٹظ„" value={form.vehicleType} onChange={e=>setForm({...form,vehicleType:e.target.value})} options={[{value:"ظ…ظˆطھظˆط³ظٹظƒظ„",label:"ًںڈچï¸ڈ ظ…ظˆطھظˆط³ظٹظƒظ„"},{value:"ط¯ط±ط§ط¬ط© ظ‡ظˆط§ط¦ظٹط©",label:"ًںڑ² ط¯ط±ط§ط¬ط© ظ‡ظˆط§ط¦ظٹط©"}]}/>
         </div>
-        <div style={{marginBottom:8,color:C.muted,fontSize:13,fontWeight:600}}>📸 المستندات</div>
+        <div style={{marginBottom:8,color:C.muted,fontSize:13,fontWeight:600}}>ًں“¸ ط§ظ„ظ…ط³طھظ†ط¯ط§طھ</div>
         <div style={{background:C.panel,borderRadius:10,padding:"12px 14px",marginBottom:16}}>
-          <div style={{color:C.yellow,fontSize:12,marginBottom:8}}>⚠️ تعليمات:</div>
+          <div style={{color:C.yellow,fontSize:12,marginBottom:8}}>âڑ ï¸ڈ طھط¹ظ„ظٹظ…ط§طھ:</div>
           <div style={{color:"#667",fontSize:12,lineHeight:1.9}}>
-            • <strong style={{color:C.muted}}>السيلفي:</strong> وجه واضح أمام خلفية سادة<br/>
-            • <strong style={{color:C.muted}}>البطاقة:</strong> بدون فلاش — جميع البيانات ظاهرة — بدون قص<br/>
-            {needLicense?<>• <strong style={{color:C.muted}}>الرخصة:</strong> مطلوبة للموتوسيكل</>:<span style={{color:"#445"}}>• الرخصة: غير مطلوبة للدراجة الهوائية</span>}
+            â€¢ <strong style={{color:C.muted}}>ط§ظ„ط³ظٹظ„ظپظٹ:</strong> ظˆط¬ظ‡ ظˆط§ط¶ط­ ط£ظ…ط§ظ… ط®ظ„ظپظٹط© ط³ط§ط¯ط©<br/>
+            â€¢ <strong style={{color:C.muted}}>ط§ظ„ط¨ط·ط§ظ‚ط©:</strong> ط¨ط¯ظˆظ† ظپظ„ط§ط´ â€” ط¬ظ…ظٹط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط¸ط§ظ‡ط±ط© â€” ط¨ط¯ظˆظ† ظ‚طµ<br/>
+            {needLicense?<>â€¢ <strong style={{color:C.muted}}>ط§ظ„ط±ط®طµط©:</strong> ظ…ط·ظ„ظˆط¨ط© ظ„ظ„ظ…ظˆطھظˆط³ظٹظƒظ„</>:<span style={{color:"#445"}}>â€¢ ط§ظ„ط±ط®طµط©: ط؛ظٹط± ظ…ط·ظ„ظˆط¨ط© ظ„ظ„ط¯ط±ط§ط¬ط© ط§ظ„ظ‡ظˆط§ط¦ظٹط©</span>}
           </div>
         </div>
         <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
-          <PhotoBox label="سيلفي" hint="وجه أمام خلفية سادة" required value={docs.selfie} onChange={v=>setDoc("selfie",v)}/>
-          <PhotoBox label="البطاقة" hint="بدون فلاش — بيانات كاملة" required value={docs.national} onChange={v=>setDoc("national",v)}/>
+          <PhotoBox label="ط³ظٹظ„ظپظٹ" hint="ظˆط¬ظ‡ ط£ظ…ط§ظ… ط®ظ„ظپظٹط© ط³ط§ط¯ط©" required value={docs.selfie} onChange={v=>setDoc("selfie",v)}/>
+          <PhotoBox label="ط§ظ„ط¨ط·ط§ظ‚ط©" hint="ط¨ط¯ظˆظ† ظپظ„ط§ط´ â€” ط¨ظٹط§ظ†ط§طھ ظƒط§ظ…ظ„ط©" required value={docs.national} onChange={v=>setDoc("national",v)}/>
           {needLicense
-            ?<PhotoBox label="الرخصة" hint="رخصة قيادة موتوسيكل" required value={docs.license} onChange={v=>setDoc("license",v)}/>
-            :<div style={{flex:1,minWidth:130,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#445",fontSize:12,textAlign:"center",padding:16}}>🚲<br/>لا تلزم رخصة</div></div>}
+            ?<PhotoBox label="ط§ظ„ط±ط®طµط©" hint="ط±ط®طµط© ظ‚ظٹط§ط¯ط© ظ…ظˆطھظˆط³ظٹظƒظ„" required value={docs.license} onChange={v=>setDoc("license",v)}/>
+            :<div style={{flex:1,minWidth:130,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"#445",fontSize:12,textAlign:"center",padding:16}}>ًںڑ²<br/>ظ„ط§ طھظ„ط²ظ… ط±ط®طµط©</div></div>}
         </div>
         <Btn onClick={handleSubmit} disabled={saving} style={{width:"100%",padding:"12px",marginTop:18,fontSize:15}}>
-          {saving?"⏳ جاري الحفظ...":"✅ إرسال للمراجعة"}
+          {saving?"âڈ³ ط¬ط§ط±ظٹ ط§ظ„ط­ظپط¸...":"âœ… ط¥ط±ط³ط§ظ„ ظ„ظ„ظ…ط±ط§ط¬ط¹ط©"}
         </Btn>
       </Card>
     </div>
   );
 }
 
-// ══════════════════ DELEGATES ═════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ DELEGATES â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,addNotifDB}){
   const [search,setSearch]=useState("");
-  const [filter,setFilter]=useState("الكل");
+  const [filter,setFilter]=useState("ط§ظ„ظƒظ„");
   const [editId,setEditId]=useState(null);
   const [editD,setEditD]=useState({});
   const [preview,setPreview]=useState(null);
   const [saving,setSaving]=useState(false);
   const shown=myDelegates.filter(d=>{
     const ms=d.name.includes(search)||d.id.includes(search)||d.phone.includes(search);
-    const mf=filter==="الكل"||d.status===filter;
+    const mf=filter==="ط§ظ„ظƒظ„"||d.status===filter;
     return ms&&mf;
   });
   const saveEdit=async(id)=>{
@@ -997,11 +997,11 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
       const prev=delegates.find(x=>x.id===id);
       await dbUpdate("delegates",{status:editD.status,commission_rate:editD.commission_rate},{id:id});
       if(prev&&editD.status!==prev.status){
-        const msg=editD.status==="مقبول"?`✅ تم قبول "${prev.name}"`:`❌ تم رفض "${prev.name}"`;
-        await addNotifDB(prev.supervisor_id,msg,editD.status==="مقبول"?"success":"error");
+        const msg=editD.status==="ظ…ظ‚ط¨ظˆظ„"?`âœ… طھظ… ظ‚ط¨ظˆظ„ "${prev.name}"`:`â‌Œ طھظ… ط±ظپط¶ "${prev.name}"`;
+        await addNotifDB(prev.supervisor_id,msg,editD.status==="ظ…ظ‚ط¨ظˆظ„"?"success":"error");
       }
       setDelegates(p=>Array.isArray(p)?p.map(d=>d.id===id?{...d,...editD}:d):[]);
-      setEditId(null);notify("✅ تم تحديث البيانات");
+      setEditId(null);notify("âœ… طھظ… طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ");
     }finally{setSaving(false);}
   };
   return(
@@ -1011,15 +1011,15 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
           <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:14,padding:20,maxWidth:400,width:"90%",textAlign:"center"}}>
             <div style={{color:C.text,fontWeight:700,marginBottom:12}}>{preview.label}</div>
             <img src={preview.src} alt="" style={{width:"100%",borderRadius:10,maxHeight:380,objectFit:"contain"}}/>
-            <Btn variant="ghost" onClick={()=>setPreview(null)} style={{marginTop:14,width:"100%"}}>إغلاق</Btn>
+            <Btn variant="ghost" onClick={()=>setPreview(null)} style={{marginTop:14,width:"100%"}}>ط¥ط؛ظ„ط§ظ‚</Btn>
           </div>
         </div>
       )}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18,flexWrap:"wrap",gap:10}}>
-        <h2 style={{color:C.text,margin:0}}>👥 المناديب ({myDelegates.length})</h2>
+        <h2 style={{color:C.text,margin:0}}>ًں‘¥ ط§ظ„ظ…ظ†ط§ط¯ظٹط¨ ({myDelegates.length})</h2>
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          <input placeholder="بحث..." value={search} onChange={e=>setSearch(e.target.value)} style={{background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"7px 13px",fontSize:13,outline:"none",width:170}}/>
-          {["الكل","مقبول","مرفوض","قيد المراجعة"].map(s=>(
+          <input placeholder="ط¨ط­ط«..." value={search} onChange={e=>setSearch(e.target.value)} style={{background:C.card,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"7px 13px",fontSize:13,outline:"none",width:170}}/>
+          {["ط§ظ„ظƒظ„","ظ…ظ‚ط¨ظˆظ„","ظ…ط±ظپظˆط¶","ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©"].map(s=>(
             <button key={s} onClick={()=>setFilter(s)} style={{background:filter===s?C.blue:C.card,color:filter===s?"#fff":C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:600}}>{s}</button>
           ))}
         </div>
@@ -1028,7 +1028,7 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["ID","الاسم","الهاتف","الوسيلة","الحالة","النسبة","الأوردرات","إجراءات"].map(h=>(
+              {["ID","ط§ظ„ط§ط³ظ…","ط§ظ„ظ‡ط§طھظپ","ط§ظ„ظˆط³ظٹظ„ط©","ط§ظ„ط­ط§ظ„ط©","ط§ظ„ظ†ط³ط¨ط©","ط§ظ„ط£ظˆط±ط¯ط±ط§طھ","ط¥ط¬ط±ط§ط،ط§طھ"].map(h=>(
                 <th key={h} style={{padding:"11px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
               ))}
             </tr>
@@ -1039,11 +1039,11 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
                 <td style={{padding:"12px",fontFamily:"monospace",color:C.blue,fontSize:12}}>{d.id}</td>
                 <td style={{padding:"12px",color:C.text,fontWeight:600}}>{d.name}</td>
                 <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.phone}</td>
-                <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
+                <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="ظ…ظˆطھظˆط³ظٹظƒظ„"?"ًںڈچï¸ڈ":"ًںڑ²"}</td>
                 <td style={{padding:"12px"}}>
                   {editId===d.id
                     ?<select value={editD.status} onChange={e=>setEditD({...editD,status:e.target.value})} style={{background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"4px 8px",fontSize:12}}>
-                      {["مقبول","مرفوض","قيد المراجعة"].map(s=><option key={s}>{s}</option>)}
+                      {["ظ…ظ‚ط¨ظˆظ„","ظ…ط±ظپظˆط¶","ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©"].map(s=><option key={s}>{s}</option>)}
                     </select>
                     :<Badge status={d.status}/>}
                 </td>
@@ -1052,18 +1052,18 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
                     ?<input type="number" value={editD.commission_rate} onChange={e=>setEditD({...editD,commission_rate:parseFloat(e.target.value)})} style={{width:55,background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"4px 7px",fontSize:12}}/>
                     :<span style={{color:C.green,fontWeight:700}}>{d.commission_rate}%</span>}
                 </td>
-                <td style={{padding:"12px",color:C.purple,fontWeight:700}}>{d.status==="مقبول"?(d.orders||0).toLocaleString():"—"}</td>
+                <td style={{padding:"12px",color:C.purple,fontWeight:700}}>{d.status==="ظ…ظ‚ط¨ظˆظ„"?(d.orders||0).toLocaleString():"â€”"}</td>
                 <td style={{padding:"12px"}}>
                   {editId===d.id
                     ?<div style={{display:"flex",gap:6}}>
-                      <Btn variant="success" onClick={()=>saveEdit(d.id)} disabled={saving} style={{padding:"5px 10px",fontSize:12}}>{saving?"...":"حفظ"}</Btn>
-                      <Btn variant="ghost" onClick={()=>setEditId(null)} style={{padding:"5px 10px",fontSize:12}}>إلغاء</Btn>
+                      <Btn variant="success" onClick={()=>saveEdit(d.id)} disabled={saving} style={{padding:"5px 10px",fontSize:12}}>{saving?"...":"ط­ظپط¸"}</Btn>
+                      <Btn variant="ghost" onClick={()=>setEditId(null)} style={{padding:"5px 10px",fontSize:12}}>ط¥ظ„ط؛ط§ط،</Btn>
                     </div>
                     :<div style={{display:"flex",gap:5}}>
-                      <Btn variant="ghost" onClick={()=>{setEditId(d.id);setEditD({status:d.status,commission_rate:d.commission_rate});}} style={{padding:"5px 10px",fontSize:12}}>✏️</Btn>
-                      {d.status==="قيد المراجعة"&&<>
-                        <Btn variant="success" onClick={()=>changeStatus(d.id,"مقبول")} style={{padding:"5px 10px",fontSize:12}}>قبول</Btn>
-                        <Btn variant="danger"  onClick={()=>changeStatus(d.id,"مرفوض")} style={{padding:"5px 10px",fontSize:12}}>رفض</Btn>
+                      <Btn variant="ghost" onClick={()=>{setEditId(d.id);setEditD({status:d.status,commission_rate:d.commission_rate});}} style={{padding:"5px 10px",fontSize:12}}>âœڈï¸ڈ</Btn>
+                      {d.status==="ظ‚ظٹط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©"&&<>
+                        <Btn variant="success" onClick={()=>changeStatus(d.id,"ظ…ظ‚ط¨ظˆظ„")} style={{padding:"5px 10px",fontSize:12}}>ظ‚ط¨ظˆظ„</Btn>
+                        <Btn variant="danger"  onClick={()=>changeStatus(d.id,"ظ…ط±ظپظˆط¶")} style={{padding:"5px 10px",fontSize:12}}>ط±ظپط¶</Btn>
                       </>}
                     </div>}
                 </td>
@@ -1071,13 +1071,13 @@ function DelegatesTab({myDelegates,delegates,setDelegates,notify,changeStatus,ad
             ))}
           </tbody>
         </table>
-        {shown.length===0&&<div style={{textAlign:"center",padding:"32px",color:C.muted}}>لا توجد نتائج</div>}
+        {shown.length===0&&<div style={{textAlign:"center",padding:"32px",color:C.muted}}>ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬</div>}
       </div>
     </div>
   );
 }
 
-// ══════════════════ ORDERS ════════════════════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ ORDERS â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNotifDB}){
   const [xlsErr,setXlsErr]=useState(null);
   const [preview,setPreview]=useState(null);
@@ -1085,7 +1085,7 @@ function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNoti
   const [manOrds,setManOrds]=useState("");
   const [saving,setSaving]=useState(false);
   const fileRef=useRef();
-  const accepted=myDelegates.filter(d=>d.status==="مقبول");
+  const accepted=myDelegates.filter(d=>d.status==="ظ…ظ‚ط¨ظˆظ„");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
 
   const handleXlsx=(e)=>{
@@ -1096,13 +1096,13 @@ function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNoti
         const wb=XLSX.read(ev.target.result,{type:"binary"});
         const ws=wb.Sheets[wb.SheetNames[0]];
         const rows=XLSX.utils.sheet_to_json(ws,{header:1});
-        if(rows.length<2){setXlsErr("الملف فارغ");return;}
+        if(rows.length<2){setXlsErr("ط§ظ„ظ…ظ„ظپ ظپط§ط±ط؛");return;}
         const hdrs=rows[0].map(h=>String(h||"").trim().toLowerCase());
-        const idCol=hdrs.findIndex(h=>["id","delegate_id","مندوب","del_id"].some(k=>h.includes(k)));
-        const orCol=hdrs.findIndex(h=>["order","أوردر","عدد","orders"].some(k=>h.includes(k)));
-        if(idCol===-1||orCol===-1){setXlsErr(`لم يُعثر على الأعمدة.\nأعمدة: ${rows[0].join(", ")}`);return;}
+        const idCol=hdrs.findIndex(h=>["id","delegate_id","ظ…ظ†ط¯ظˆط¨","del_id"].some(k=>h.includes(k)));
+        const orCol=hdrs.findIndex(h=>["order","ط£ظˆط±ط¯ط±","ط¹ط¯ط¯","orders"].some(k=>h.includes(k)));
+        if(idCol===-1||orCol===-1){setXlsErr(`ظ„ظ… ظٹظڈط¹ط«ط± ط¹ظ„ظ‰ ط§ظ„ط£ط¹ظ…ط¯ط©.\nط£ط¹ظ…ط¯ط©: ${rows[0].join(", ")}`);return;}
         setPreview(rows.slice(1).filter(r=>r[idCol]).map(r=>({id:String(r[idCol]).trim(),orders:parseInt(r[orCol])||0})));
-      }catch(err){setXlsErr("خطأ: "+err.message);}
+      }catch(err){setXlsErr("ط®ط·ط£: "+err.message);}
     };
     reader.readAsBinaryString(file);
   };
@@ -1112,80 +1112,80 @@ function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNoti
     let cnt=0;
     try{
       for(const r of preview){
-        const d=delegates.find(x=>x.id===r.id&&x.supervisor_id===currentSup.id&&x.status==="مقبول");
+        const d=delegates.find(x=>x.id===r.id&&x.supervisor_id===currentSup.id&&x.status==="ظ…ظ‚ط¨ظˆظ„");
         if(d){await dbUpdate("delegates",{orders:r.orders},{id:r.id});cnt++;}
       }
       setDelegates(prev=>Array.isArray(prev)?prev.map(d=>{
         const m=preview.find(r=>r.id===d.id);
-        return m&&d.supervisor_id===currentSup.id&&d.status==="مقبول"?{...d,orders:m.orders}:d;
+        return m&&d.supervisor_id===currentSup.id&&d.status==="ظ…ظ‚ط¨ظˆظ„"?{...d,orders:m.orders}:d;
       }):[]);
-      await addNotifDB(currentSup.id,`📦 تم تحديث أوردرات ${cnt} مندوب من Excel`,"info");
-      notify(`✅ تم تحديث ${cnt} مندوب`);
+      await addNotifDB(currentSup.id,`ًں“¦ طھظ… طھط­ط¯ظٹط« ط£ظˆط±ط¯ط±ط§طھ ${cnt} ظ…ظ†ط¯ظˆط¨ ظ…ظ† Excel`,"info");
+      notify(`âœ… طھظ… طھط­ط¯ظٹط« ${cnt} ظ…ظ†ط¯ظˆط¨`);
       setPreview(null);if(fileRef.current)fileRef.current.value="";
     }finally{setSaving(false);}
   };
 
   const applyManual=async()=>{
     const d=delegates.find(x=>x.id===manId&&x.supervisor_id===currentSup.id);
-    if(!d){notify("❗ المندوب غير موجود","error");return;}
-    if(d.status!=="مقبول"){notify("❗ المندوب غير مقبول","error");return;}
+    if(!d){notify("â‌— ط§ظ„ظ…ظ†ط¯ظˆط¨ ط؛ظٹط± ظ…ظˆط¬ظˆط¯","error");return;}
+    if(d.status!=="ظ…ظ‚ط¨ظˆظ„"){notify("â‌— ط§ظ„ظ…ظ†ط¯ظˆط¨ ط؛ظٹط± ظ…ظ‚ط¨ظˆظ„","error");return;}
     setSaving(true);
     try{
       await dbUpdate("delegates",{orders:parseInt(manOrds)||0},{id:manId});
       setDelegates(prev=>Array.isArray(prev)?prev.map(x=>x.id===manId?{...x,orders:parseInt(manOrds)||0}:x):[]);
-      await addNotifDB(currentSup.id,`📦 تم تحديث أوردرات "${d.name}": ${manOrds} أوردر`,"info");
-      notify(`✅ تم تحديث أوردرات ${d.name}`);
+      await addNotifDB(currentSup.id,`ًں“¦ طھظ… طھط­ط¯ظٹط« ط£ظˆط±ط¯ط±ط§طھ "${d.name}": ${manOrds} ط£ظˆط±ط¯ط±`,"info");
+      notify(`âœ… طھظ… طھط­ط¯ظٹط« ط£ظˆط±ط¯ط±ط§طھ ${d.name}`);
       setManId("");setManOrds("");
     }finally{setSaving(false);}
   };
 
   return(
     <div>
-      <h2 style={{color:C.text,marginBottom:6}}>📦 إدارة الأوردرات</h2>
-      <p style={{color:C.muted,marginBottom:22}}>رفع شيت Excel أو تحديث يدوي</p>
+      <h2 style={{color:C.text,marginBottom:6}}>ًں“¦ ط¥ط¯ط§ط±ط© ط§ظ„ط£ظˆط±ط¯ط±ط§طھ</h2>
+      <p style={{color:C.muted,marginBottom:22}}>ط±ظپط¹ ط´ظٹطھ Excel ط£ظˆ طھط­ط¯ظٹط« ظٹط¯ظˆظٹ</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
         <Card>
-          <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>📊 رفع شيت Excel</h3>
-          <p style={{color:"#445",fontSize:12,marginBottom:12}}>عمود <strong style={{color:C.blue}}>ID</strong> + عمود <strong style={{color:C.blue}}>Orders</strong></p>
+          <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>ًں“ٹ ط±ظپط¹ ط´ظٹطھ Excel</h3>
+          <p style={{color:"#445",fontSize:12,marginBottom:12}}>ط¹ظ…ظˆط¯ <strong style={{color:C.blue}}>ID</strong> + ط¹ظ…ظˆط¯ <strong style={{color:C.blue}}>Orders</strong></p>
           <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${C.border}`,borderRadius:10,padding:"22px",textAlign:"center",cursor:"pointer",background:C.panel}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.blue} onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
-            <div style={{fontSize:36,marginBottom:8}}>📋</div>
-            <div style={{color:C.muted,fontSize:13}}>اضغط لاختيار ملف</div>
+            <div style={{fontSize:36,marginBottom:8}}>ًں“‹</div>
+            <div style={{color:C.muted,fontSize:13}}>ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± ظ…ظ„ظپ</div>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={handleXlsx}/>
           </div>
           {xlsErr&&<div style={{background:"#3d0d0d",border:`1px solid ${C.red}`,borderRadius:8,padding:"10px 14px",marginTop:10,color:C.red,fontSize:12,whiteSpace:"pre-wrap"}}>{xlsErr}</div>}
           {preview&&(
             <div style={{marginTop:12}}>
-              <div style={{color:C.green,fontSize:13,marginBottom:8}}>✅ {preview.length} صف</div>
+              <div style={{color:C.green,fontSize:13,marginBottom:8}}>âœ… {preview.length} طµظپ</div>
               <div style={{maxHeight:130,overflowY:"auto",background:C.panel,borderRadius:8,padding:10}}>
                 {preview.slice(0,6).map((r,i)=>{
                   const f=delegates.find(d=>d.id===r.id&&d.supervisor_id===currentSup.id);
                   return <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.border}22`,fontSize:12}}>
                     <span style={{color:C.blue,fontFamily:"monospace"}}>{r.id}</span>
                     <span style={{color:C.purple}}>{r.orders}</span>
-                    <span style={{color:f?C.green:C.red}}>{f?"✓":"✗"}</span>
+                    <span style={{color:f?C.green:C.red}}>{f?"âœ“":"âœ—"}</span>
                   </div>;
                 })}
               </div>
               <div style={{display:"flex",gap:8,marginTop:10}}>
-                <Btn variant="success" onClick={applyXlsx} disabled={saving} style={{flex:1}}>{saving?"⏳ جاري...":"✅ تطبيق"}</Btn>
-                <Btn variant="ghost" onClick={()=>setPreview(null)}>إلغاء</Btn>
+                <Btn variant="success" onClick={applyXlsx} disabled={saving} style={{flex:1}}>{saving?"âڈ³ ط¬ط§ط±ظٹ...":"âœ… طھط·ط¨ظٹظ‚"}</Btn>
+                <Btn variant="ghost" onClick={()=>setPreview(null)}>ط¥ظ„ط؛ط§ط،</Btn>
               </div>
             </div>
           )}
         </Card>
         <Card>
-          <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>✏️ تحديث يدوي</h3>
-          <Sel label="اختر المندوب" value={manId} onChange={e=>setManId(e.target.value)} options={[{value:"",label:"-- اختر --"},...myDelegates.filter(d=>d.status==="مقبول").map(d=>({value:d.id,label:`${d.name} (${d.id})`}))]}/>
-          <Inp label="عدد الأوردرات" type="number" min={0} value={manOrds} onChange={e=>setManOrds(e.target.value)} placeholder="120"/>
-          <Btn onClick={applyManual} disabled={!manId||!manOrds||saving} style={{width:"100%",padding:"11px"}}>{saving?"⏳ جاري...":"تحديث"}</Btn>
+          <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>âœڈï¸ڈ طھط­ط¯ظٹط« ظٹط¯ظˆظٹ</h3>
+          <Sel label="ط§ط®طھط± ط§ظ„ظ…ظ†ط¯ظˆط¨" value={manId} onChange={e=>setManId(e.target.value)} options={[{value:"",label:"-- ط§ط®طھط± --"},...myDelegates.filter(d=>d.status==="ظ…ظ‚ط¨ظˆظ„").map(d=>({value:d.id,label:`${d.name} (${d.id})`}))]}/>
+          <Inp label="ط¹ط¯ط¯ ط§ظ„ط£ظˆط±ط¯ط±ط§طھ" type="number" min={0} value={manOrds} onChange={e=>setManOrds(e.target.value)} placeholder="120"/>
+          <Btn onClick={applyManual} disabled={!manId||!manOrds||saving} style={{width:"100%",padding:"11px"}}>{saving?"âڈ³ ط¬ط§ط±ظٹ...":"طھط­ط¯ظٹط«"}</Btn>
         </Card>
       </div>
       <Card>
-        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>ملخص — إجمالي: <span style={{color:C.purple}}>{totalOrders.toLocaleString()}</span></h3>
+        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>ظ…ظ„ط®طµ â€” ط¥ط¬ظ…ط§ظ„ظٹ: <span style={{color:C.purple}}>{totalOrders.toLocaleString()}</span></h3>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["ID","الاسم","الوسيلة","الحالة","الأوردرات","النسبة","العمولة"].map(h=><th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>)}
+              {["ID","ط§ظ„ط§ط³ظ…","ط§ظ„ظˆط³ظٹظ„ط©","ط§ظ„ط­ط§ظ„ط©","ط§ظ„ط£ظˆط±ط¯ط±ط§طھ","ط§ظ„ظ†ط³ط¨ط©","ط§ظ„ط¹ظ…ظˆظ„ط©"].map(h=><th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -1193,17 +1193,17 @@ function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNoti
               <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`}}>
                 <td style={{padding:"11px 12px",fontFamily:"monospace",color:C.blue,fontSize:12}}>{d.id}</td>
                 <td style={{padding:"11px 12px",color:C.text}}>{d.name}</td>
-                <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
+                <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="ظ…ظˆطھظˆط³ظٹظƒظ„"?"ًںڈچï¸ڈ":"ًںڑ²"}</td>
                 <td style={{padding:"11px 12px"}}><Badge status={d.status}/></td>
-                <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{d.status==="مقبول"?(d.orders||0).toLocaleString():"—"}</td>
-                <td style={{padding:"11px 12px",color:C.green}}>{d.status==="مقبول"?`${d.commission_rate}%`:"—"}</td>
-                <td style={{padding:"11px 12px",color:C.yellow}}>{d.status==="مقبول"?((d.orders||0)*d.commission_rate/100).toFixed(0):"—"}</td>
+                <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{d.status==="ظ…ظ‚ط¨ظˆظ„"?(d.orders||0).toLocaleString():"â€”"}</td>
+                <td style={{padding:"11px 12px",color:C.green}}>{d.status==="ظ…ظ‚ط¨ظˆظ„"?`${d.commission_rate}%`:"â€”"}</td>
+                <td style={{padding:"11px 12px",color:C.yellow}}>{d.status==="ظ…ظ‚ط¨ظˆظ„"?((d.orders||0)*d.commission_rate/100).toFixed(0):"â€”"}</td>
               </tr>
             ))}
             <tr style={{background:C.panel,borderTop:`2px solid ${C.blue}`}}>
-              <td colSpan={4} style={{padding:"12px",color:C.muted,fontWeight:700}}>المجموع</td>
+              <td colSpan={4} style={{padding:"12px",color:C.muted,fontWeight:700}}>ط§ظ„ظ…ط¬ظ…ظˆط¹</td>
               <td style={{padding:"12px",color:C.purple,fontWeight:800,fontSize:16}}>{totalOrders.toLocaleString()}</td>
-              <td>—</td>
+              <td>â€”</td>
               <td style={{padding:"12px",color:C.yellow,fontWeight:800}}>{accepted.reduce((s,d)=>s+((d.orders||0)*d.commission_rate/100),0).toFixed(0)}</td>
             </tr>
           </tbody>
@@ -1213,59 +1213,59 @@ function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNoti
   );
 }
 
-// ══════════════════ SUPERVISOR MANAGEMENT ════════════════════════════════
+// â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ SUPERVISOR MANAGEMENT â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 function SupervisorTab({supervisors,setSupervisors,notify}){
   const [form,setForm]=useState({name:"",phone:"",password:"",email:""});
   const [showP,setShowP]=useState({});
   const [saving,setSaving]=useState(false);
   const add=async()=>{
-    if(!form.name.trim())    {notify("❗ أدخل الاسم","error");        return;}
-    if(!form.phone.trim())   {notify("❗ أدخل رقم الهاتف","error");  return;}
-    if(!form.password.trim()){notify("❗ أدخل كلمة المرور","error"); return;}
-    if(supervisors.find(s=>s.phone===form.phone)){notify("❗ رقم مسجل مسبقاً","error");return;}
+    if(!form.name.trim())    {notify("â‌— ط£ط¯ط®ظ„ ط§ظ„ط§ط³ظ…","error");        return;}
+    if(!form.phone.trim())   {notify("â‌— ط£ط¯ط®ظ„ ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ","error");  return;}
+    if(!form.password.trim()){notify("â‌— ط£ط¯ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±","error"); return;}
+    if(supervisors.find(s=>s.phone===form.phone)){notify("â‌— ط±ظ‚ظ… ظ…ط³ط¬ظ„ ظ…ط³ط¨ظ‚ط§ظ‹","error");return;}
     setSaving(true);
     try{
       const ns={id:genId("SUP"),name:form.name.trim(),phone:form.phone.trim(),password_hash:form.password.trim(),email:form.email.trim(),role:"supervisor"};
       const ok2=await dbInsert("supervisors",ns); const error=ok2?null:"insert failed";
       if(error)throw error;
       setSupervisors(prev=>[...prev,ns]);
-      notify(`✅ تم إضافة ${form.name} — ID: ${ns.id}`);
+      notify(`âœ… طھظ… ط¥ط¶ط§ظپط© ${form.name} â€” ID: ${ns.id}`);
       setForm({name:"",phone:"",password:"",email:""});
-    }catch(e){notify("❌ حدث خطأ","error");}
+    }catch(e){notify("â‌Œ ط­ط¯ط« ط®ط·ط£","error");}
     finally{setSaving(false);}
   };
   return(
     <div style={{maxWidth:680}}>
-      <h2 style={{color:C.text,marginBottom:6}}>🏢 إدارة المشرفين</h2>
-      <p style={{color:C.muted,marginBottom:22}}>إضافة مشرفين جدد — البيانات تُحفظ في قاعدة البيانات</p>
+      <h2 style={{color:C.text,marginBottom:6}}>ًںڈ¢ ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط´ط±ظپظٹظ†</h2>
+      <p style={{color:C.muted,marginBottom:22}}>ط¥ط¶ط§ظپط© ظ…ط´ط±ظپظٹظ† ط¬ط¯ط¯ â€” ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظڈط­ظپط¸ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ</p>
       <Card style={{marginBottom:22}}>
-        <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>➕ مشرف جديد</h3>
+        <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>â‍• ظ…ط´ط±ظپ ط¬ط¯ظٹط¯</h3>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-          <Inp label="الاسم" placeholder="أحمد محمود" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
-          <Inp label="البريد الإلكتروني" placeholder="ahmed@co.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/>
-          <Inp label="رقم الهاتف (للدخول)" placeholder="05XXXXXXXX" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
+          <Inp label="ط§ظ„ط§ط³ظ…" placeholder="ط£ط­ظ…ط¯ ظ…ط­ظ…ظˆط¯" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/>
+          <Inp label="ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ" placeholder="ahmed@co.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/>
+          <Inp label="ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ (ظ„ظ„ط¯ط®ظˆظ„)" placeholder="05XXXXXXXX" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/>
           <div style={{marginBottom:14}}>
-            <label style={{display:"block",color:C.muted,fontSize:12,marginBottom:5}}>كلمة المرور</label>
+            <label style={{display:"block",color:C.muted,fontSize:12,marginBottom:5}}>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</label>
             <div style={{position:"relative"}}>
-              <input type={showP.new?"text":"password"} placeholder="••••••" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}
+              <input type={showP.new?"text":"password"} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}
                 style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"9px 38px 9px 13px",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
-              <span onClick={()=>setShowP(s=>({...s,new:!s.new}))} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:15,color:C.muted}}>{showP.new?"🙈":"👁️"}</span>
+              <span onClick={()=>setShowP(s=>({...s,new:!s.new}))} style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:15,color:C.muted}}>{showP.new?"ًں™ˆ":"ًں‘پï¸ڈ"}</span>
             </div>
           </div>
         </div>
-        <Btn onClick={add} disabled={saving} style={{width:"100%",padding:"11px"}}>{saving?"⏳ جاري الحفظ...":"إضافة مشرف"}</Btn>
+        <Btn onClick={add} disabled={saving} style={{width:"100%",padding:"11px"}}>{saving?"âڈ³ ط¬ط§ط±ظٹ ط§ظ„ط­ظپط¸...":"ط¥ط¶ط§ظپط© ظ…ط´ط±ظپ"}</Btn>
       </Card>
       <Card>
-        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>قائمة المشرفين ({supervisors.length})</h3>
+        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط´ط±ظپظٹظ† ({supervisors.length})</h3>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {supervisors.map(s=>(
             <div key={s.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:C.panel,padding:"14px 18px",borderRadius:10,border:`1px solid ${C.border}`,flexWrap:"wrap",gap:8}}>
               <div>
                 <div style={{fontWeight:700,color:C.text}}>{s.name}</div>
-                <div style={{color:C.muted,fontSize:12,marginTop:3}}>📱 {s.phone} | 📧 {s.email}</div>
+                <div style={{color:C.muted,fontSize:12,marginTop:3}}>ًں“± {s.phone} | ًں“§ {s.email}</div>
                 <div style={{color:"#445",fontSize:11,marginTop:2}}>
-                  🔑 <span style={{color:C.muted,fontFamily:"monospace"}}>{showP[s.id]?s.password_hash:"••••"}</span>
-                  <span onClick={()=>setShowP(p=>({...p,[s.id]:!p[s.id]}))} style={{marginRight:6,cursor:"pointer",fontSize:12}}>{showP[s.id]?"🙈":"👁️"}</span>
+                  ًں”‘ <span style={{color:C.muted,fontFamily:"monospace"}}>{showP[s.id]?s.password_hash:"â€¢â€¢â€¢â€¢"}</span>
+                  <span onClick={()=>setShowP(p=>({...p,[s.id]:!p[s.id]}))} style={{marginRight:6,cursor:"pointer",fontSize:12}}>{showP[s.id]?"ًں™ˆ":"ًں‘پï¸ڈ"}</span>
                 </div>
               </div>
               <div style={{background:`${C.blue}22`,color:C.blue,padding:"5px 14px",borderRadius:20,fontFamily:"monospace",fontSize:13,fontWeight:700}}>{s.id}</div>
