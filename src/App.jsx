@@ -536,6 +536,9 @@ export default function App(){
   const myDelegates=delegates;
   const accepted=myDelegates.filter(d=>d.status==="مقبول");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
+  // Use the freshest copy of the supervisor record (rates may have been
+  // updated by ops manager after login) instead of the stale login snapshot.
+  const currentSupFresh=isOps?currentUser:(supervisors.find(s=>s.id===currentUser.id)||currentUser);
 
   // ── DB Actions ──
   const addNotifDB=async(supId,message,type="info")=>{
@@ -615,7 +618,7 @@ export default function App(){
         {tab==="dashboard"     && <DashboardTab myDelegates={myDelegates} accepted={accepted} totalOrders={totalOrders}/>}
         {tab==="upload_doc"    && <UploadDocTab supervisors={supervisors} setDelegates={setDelegates} notify={notify} currentSup={currentUser} addNotifDB={addNotifDB}/>}
         {tab==="delegates"     && <DelegatesTab myDelegates={myDelegates}/>}
-        {tab==="orders"        && <OrdersTab delegates={delegates} setDelegates={setDelegates} currentSup={currentUser} notify={notify} myDelegates={myDelegates} addNotifDB={addNotifDB}/>}
+        {tab==="orders"        && <OrdersTab currentSup={currentSupFresh} myDelegates={myDelegates}/>}
         {tab==="messages"      && <MessagingTab currentUser={currentUser} conversations={conversations} setConversations={setConversations} supervisors={supervisors} addNotifDB={addNotifDB}/>}
         {tab==="supervisor"    && <SupervisorTab supervisors={supervisors} setSupervisors={setSupervisors} notify={notify}/>}
         {tab==="ops_dashboard" && <OpsDashboard delegates={delegates} setDelegates={setDelegates} supervisors={supervisors} setSupervisors={setSupervisors} changeStatus={changeStatus} notify={notify} addNotifDB={addNotifDB}/>}
@@ -916,15 +919,18 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
     }finally{setSaving(false);}
   };
 
-  const saveRate=async(id)=>{
-    const rate=parseFloat(editRate);
-    if(isNaN(rate)||rate<0||rate>100){notify("❗ نسبة غير صحيحة","error");return;}
-    await dbUpdate("delegates",{commission_rate:rate},{id});
-    setDelegates(prev=>prev.map(d=>d.id===id?{...d,commission_rate:rate}:d));
-    const d=delegates.find(x=>x.id===id);
-    if(d) await addNotifDB(d.supervisor_id,`💰 تم تحديد نسبة عمولة "${d.name}" بـ ${rate}%`,"info");
-    notify("✅ تم تحديث النسبة");
-    setEditId(null);
+  const saveSupervisorRates=async(supId,bikeRate,motoRate)=>{
+    const bRate=parseFloat(bikeRate), mRate=parseFloat(motoRate);
+    if(bikeRate!==""&&(isNaN(bRate)||bRate<0)){notify("❗ سعر الدراجات غير صحيح","error");return false;}
+    if(motoRate!==""&&(isNaN(mRate)||mRate<0)){notify("❗ سعر الموتوسيكل غير صحيح","error");return false;}
+    const vals={};
+    if(bikeRate!=="") vals.bike_rate=bRate;
+    if(motoRate!=="") vals.moto_rate=mRate;
+    await dbUpdate("supervisors",vals,{id:supId});
+    setSupervisors(prev=>prev.map(s=>s.id===supId?{...s,...vals}:s));
+    await addNotifDB(supId,"💰 تم تحديث نسب عمولتك من مدير التشغيل","info");
+    notify("✅ تم حفظ النسب");
+    return true;
   };
 
   const saveRename=async(id)=>{
@@ -934,6 +940,13 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
     notify("✅ تم تعديل الاسم");
     setRenameId(null);
   };
+
+  const [detailSupId,setDetailSupId]=useState(null);
+
+  if(detailSupId){
+    const sup=supervisors.find(s=>s.id===detailSupId);
+    return <SupervisorDetailPanel sup={sup} delegates={delegates} onBack={()=>setDetailSupId(null)} saveSupervisorRates={saveSupervisorRates}/>;
+  }
 
   return(
     <div>
@@ -1028,45 +1041,37 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
         </Card>
       )}
 
-      {/* Commission rates for accepted delegates */}
+      {/* Commission rates — per supervisor, split by vehicle type */}
       <Card style={{marginBottom:22}}>
-        <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>💰 تحديد نسب العمولة للمناديب المقبولين</h3>
-        <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <thead>
-            <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["الاسم","الوسيلة","المشرف","العنوان","الأوردرات","النسبة"].map(h=>(
-                <th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {accepted.map(d=>{
-              const sup=supervisors.find(s=>s.id===d.supervisor_id);
-              return(
-                <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`}}>
-                  <td style={{padding:"11px 12px",color:C.text}}>{d.name}</td>
-                  <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
-                  <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{sup?.name||d.supervisor_id}</td>
-                  <td style={{padding:"11px 12px",color:"#556",fontSize:12}}>{d.address||"—"}</td>
-                  <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{(d.orders||0).toLocaleString()}</td>
-                  <td style={{padding:"11px 12px"}}>
-                    {editId===d.id
-                      ?<div style={{display:"flex",gap:6}}>
-                        <input type="number" value={editRate} onChange={e=>setEditRate(e.target.value)}
-                          style={{width:60,background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:6,padding:"4px 7px",fontSize:12}}/>
-                        <Btn variant="success" onClick={()=>saveRate(d.id)} style={{padding:"4px 8px",fontSize:11}}>حفظ</Btn>
-                        <Btn variant="ghost" onClick={()=>setEditId(null)} style={{padding:"4px 8px",fontSize:11}}>إلغاء</Btn>
-                      </div>
-                      :<div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <span style={{color:d.commission_rate>0?C.green:"#445",fontWeight:700}}>{d.commission_rate>0?`${d.commission_rate}%`:"غير محددة"}</span>
-                        <Btn variant="ghost" onClick={()=>{setEditId(d.id);setEditRate(String(d.commission_rate||""));}} style={{padding:"3px 8px",fontSize:11}}>✏️</Btn>
-                      </div>}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <h3 style={{color:C.text,margin:"0 0 16px",fontSize:15}}>💰 تحديد عمولة المشرفين (جنيه لكل أوردر)</h3>
+        <p style={{color:"#556",fontSize:12,marginBottom:14}}>اضغط على مشرف لتحديد سعر الأوردر لمناديب الدراجات ومناديب الموتوسيكل التابعين له</p>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {supervisors.map(s=>{
+            const md=delegates.filter(d=>d.supervisor_id===s.id&&d.status==="مقبول");
+            const bikeDels=md.filter(d=>d.vehicle_type==="دراجة هوائية");
+            const motoDels=md.filter(d=>d.vehicle_type==="موتوسيكل");
+            const bikeOrders=bikeDels.reduce((a,d)=>a+(d.orders||0),0);
+            const motoOrders=motoDels.reduce((a,d)=>a+(d.orders||0),0);
+            const bikeRate=s.bike_rate||0, motoRate=s.moto_rate||0;
+            const totalCommission=(bikeOrders*bikeRate)+(motoOrders*motoRate);
+            return(
+              <div key={s.id} onClick={()=>setDetailSupId(s.id)} style={{cursor:"pointer",background:C.panel,padding:"14px 16px",borderRadius:10,border:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor=C.blue} onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}>
+                <div>
+                  <div style={{fontWeight:700,color:C.text}}>{s.name} <span style={{color:"#445",fontSize:11}}>({s.id})</span></div>
+                  <div style={{color:C.muted,fontSize:12,marginTop:4,display:"flex",gap:14}}>
+                    <span>🚲 {bikeDels.length} مندوب — {bikeRate>0?`${bikeRate} ج/أوردر`:"لم يُحدد"}</span>
+                    <span>🏍️ {motoDels.length} مندوب — {motoRate>0?`${motoRate} ج/أوردر`:"لم يُحدد"}</span>
+                  </div>
+                </div>
+                <div style={{textAlign:"left"}}>
+                  <div style={{color:C.yellow,fontWeight:800,fontSize:18}}>{totalCommission.toFixed(2)} ج</div>
+                  <div style={{color:"#445",fontSize:11}}>إجمالي عمولته</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </Card>
 
       {/* Supervisors report + rename */}
@@ -1116,6 +1121,89 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
   );
 }
 
+// ══════════════════ SUPERVISOR DETAIL PANEL (commission rates) ═══════════
+function SupervisorDetailPanel({sup,delegates,onBack,saveSupervisorRates}){
+  const md=delegates.filter(d=>d.supervisor_id===sup.id&&d.status==="مقبول");
+  const bikeDels=md.filter(d=>d.vehicle_type==="دراجة هوائية");
+  const motoDels=md.filter(d=>d.vehicle_type==="موتوسيكل");
+  const bikeOrders=bikeDels.reduce((a,d)=>a+(d.orders||0),0);
+  const motoOrders=motoDels.reduce((a,d)=>a+(d.orders||0),0);
+
+  const [bikeRate,setBikeRate]=useState(sup.bike_rate?String(sup.bike_rate):"");
+  const [motoRate,setMotoRate]=useState(sup.moto_rate?String(sup.moto_rate):"");
+  const [saving,setSaving]=useState(false);
+
+  const handleSave=async()=>{
+    setSaving(true);
+    const ok=await saveSupervisorRates(sup.id,bikeRate,motoRate);
+    setSaving(false);
+    if(ok) onBack();
+  };
+
+  const totalCommission=(bikeOrders*(parseFloat(bikeRate)||0))+(motoOrders*(parseFloat(motoRate)||0));
+
+  return(
+    <div style={{maxWidth:760}}>
+      <Btn variant="ghost" onClick={onBack} style={{marginBottom:16}}>→ رجوع لكل المشرفين</Btn>
+      <h2 style={{color:C.text,marginBottom:6}}>💰 عمولة المشرف: {sup.name}</h2>
+      <p style={{color:C.muted,marginBottom:22}}>حدد سعر الأوردر بالجنيه لكل فئة — السعر ينطبق على جميع مناديب هذه الفئة عند هذا المشرف</p>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:22}}>
+        {/* Bike section */}
+        <Card>
+          <h3 style={{color:C.text,margin:"0 0 12px",fontSize:15}}>🚲 مناديب الدراجة الهوائية ({bikeDels.length})</h3>
+          {bikeDels.length===0
+            ?<div style={{color:"#445",fontSize:13,padding:"10px 0"}}>لا يوجد مناديب دراجة عند هذا المشرف</div>
+            :<>
+              <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+                {bikeDels.map(d=>(
+                  <div key={d.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.muted,background:C.panel,padding:"6px 10px",borderRadius:6}}>
+                    <span>{d.name}</span><span style={{color:C.purple,fontWeight:700}}>{(d.orders||0).toLocaleString()} أوردر</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{color:"#556",fontSize:12,marginBottom:8}}>إجمالي أوردرات الفئة: <strong style={{color:C.purple}}>{bikeOrders.toLocaleString()}</strong></div>
+            </>
+          }
+          <Inp label="السعر بالجنيه لكل أوردر مكتمل" type="number" min={0} step="0.01" placeholder="0.75" value={bikeRate} onChange={e=>setBikeRate(e.target.value)}/>
+          {bikeRate&&<div style={{color:C.yellow,fontSize:12,marginTop:4}}>عمولة الفئة: {(bikeOrders*(parseFloat(bikeRate)||0)).toFixed(2)} جنيه</div>}
+        </Card>
+
+        {/* Motorcycle section */}
+        <Card>
+          <h3 style={{color:C.text,margin:"0 0 12px",fontSize:15}}>🏍️ مناديب الموتوسيكل ({motoDels.length})</h3>
+          {motoDels.length===0
+            ?<div style={{color:"#445",fontSize:13,padding:"10px 0"}}>لا يوجد مناديب موتوسيكل عند هذا المشرف</div>
+            :<>
+              <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+                {motoDels.map(d=>(
+                  <div key={d.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.muted,background:C.panel,padding:"6px 10px",borderRadius:6}}>
+                    <span>{d.name}</span><span style={{color:C.purple,fontWeight:700}}>{(d.orders||0).toLocaleString()} أوردر</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{color:"#556",fontSize:12,marginBottom:8}}>إجمالي أوردرات الفئة: <strong style={{color:C.purple}}>{motoOrders.toLocaleString()}</strong></div>
+            </>
+          }
+          <Inp label="السعر بالجنيه لكل أوردر مكتمل" type="number" min={0} step="0.01" placeholder="1.00" value={motoRate} onChange={e=>setMotoRate(e.target.value)}/>
+          {motoRate&&<div style={{color:C.yellow,fontSize:12,marginTop:4}}>عمولة الفئة: {(motoOrders*(parseFloat(motoRate)||0)).toFixed(2)} جنيه</div>}
+        </Card>
+      </div>
+
+      <Card style={{marginBottom:22,background:`${C.blue}11`,border:`1px solid ${C.blue}44`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{color:C.text,fontWeight:700}}>إجمالي عمولة {sup.name}</span>
+          <span style={{color:C.yellow,fontWeight:800,fontSize:22}}>{totalCommission.toFixed(2)} جنيه</span>
+        </div>
+      </Card>
+
+      <Btn onClick={handleSave} disabled={saving} style={{width:"100%",padding:"12px",fontSize:15}}>
+        {saving?"⏳ جاري الحفظ...":"✅ حفظ الأسعار"}
+      </Btn>
+    </div>
+  );
+}
+
 // ══════════════════ DASHBOARD ══════════════════════════════════════════════
 function DashboardTab({myDelegates,accepted,totalOrders}){
   const pending=myDelegates.filter(d=>d.status==="قيد المراجعة");
@@ -1144,7 +1232,6 @@ function DashboardTab({myDelegates,accepted,totalOrders}){
                 <div style={{background:C.border,borderRadius:6,height:8}}>
                   <div style={{background:`linear-gradient(90deg,${C.blue},${C.purple})`,height:8,borderRadius:6,width:`${pct}%`,transition:"width .5s"}}/>
                 </div>
-                <div style={{color:"#445",fontSize:11,marginTop:3}}>النسبة: <span style={{color:C.green}}>{d.commission_rate>0?`${d.commission_rate}%`:"لم تُحدد بعد"}</span> | العمولة: <span style={{color:C.yellow}}>{((d.orders||0)*(d.commission_rate||0)/100).toFixed(0)} ج</span></div>
               </div>
             );
           })}
@@ -1302,7 +1389,7 @@ function DelegatesTab({myDelegates}){
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["ID","الاسم","الهاتف","الوسيلة","الحالة","النسبة","الأوردرات","المستندات"].map(h=>(
+              {["ID","الاسم","الهاتف","الوسيلة","الحالة","الأوردرات","المستندات"].map(h=>(
                 <th key={h} style={{padding:"11px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
               ))}
             </tr>
@@ -1324,9 +1411,6 @@ function DelegatesTab({myDelegates}){
                   <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.phone}</td>
                   <td style={{padding:"12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
                   <td style={{padding:"12px"}}><Badge status={d.status}/></td>
-                  <td style={{padding:"12px"}}>
-                    <span style={{color:d.commission_rate>0?C.green:"#445",fontWeight:700}}>{d.commission_rate>0?`${d.commission_rate}%`:"لم تُحدد بعد"}</span>
-                  </td>
                   <td style={{padding:"12px",color:C.purple,fontWeight:700}}>{d.status==="مقبول"?(d.orders||0).toLocaleString():"—"}</td>
                   <td style={{padding:"12px"}}>
                     <div style={{display:"flex",gap:5}}>
@@ -1350,20 +1434,45 @@ function DelegatesTab({myDelegates}){
 }
 
 // ══════════════════ ORDERS ════════════════════════════════════════════════
-function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNotifDB}){
+function OrdersTab({currentSup,myDelegates}){
   const accepted=myDelegates.filter(d=>d.status==="مقبول");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
   const activeLastWeek=accepted.filter(d=>(d.orders||0)>0).length;
 
+  const bikeDels=accepted.filter(d=>d.vehicle_type==="دراجة هوائية");
+  const motoDels=accepted.filter(d=>d.vehicle_type==="موتوسيكل");
+  const bikeOrders=bikeDels.reduce((a,d)=>a+(d.orders||0),0);
+  const motoOrders=motoDels.reduce((a,d)=>a+(d.orders||0),0);
+  const bikeRate=currentSup.bike_rate||0;
+  const motoRate=currentSup.moto_rate||0;
+  const totalCommission=(bikeOrders*bikeRate)+(motoOrders*motoRate);
+
+  const rateFor=(d)=>d.vehicle_type==="موتوسيكل"?motoRate:bikeRate;
+
   return(
     <div>
-      <h2 style={{color:C.text,marginBottom:6}}>📦 ملخص الأوردرات</h2>
+      <h2 style={{color:C.text,marginBottom:6}}>📦 ملخص الأوردرات والعمولة</h2>
       <p style={{color:C.muted,marginBottom:22}}>بيانات الأوردرات يتم تحديثها أسبوعياً من قبل مدير التشغيل</p>
 
       <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:24}}>
         <StatBox label="مناديب نشطون آخر أسبوع" value={activeLastWeek} accent={C.green} sub={`من إجمالي ${accepted.length} مقبول`}/>
         <StatBox label="إجمالي الأوردرات المكتملة" value={totalOrders.toLocaleString()} accent={C.purple}/>
-        <StatBox label="إجمالي العمولات" value={accepted.reduce((s,d)=>s+((d.orders||0)*(d.commission_rate||0)/100),0).toFixed(0)} accent={C.yellow}/>
+        <StatBox label="إجمالي عمولتك" value={totalCommission.toFixed(2)+" ج"} accent={C.yellow}/>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:22}}>
+        <Card>
+          <h3 style={{color:C.text,margin:"0 0 10px",fontSize:14}}>🚲 الدراجة الهوائية</h3>
+          <div style={{color:C.muted,fontSize:13}}>{bikeDels.length} مندوب — {bikeOrders.toLocaleString()} أوردر</div>
+          <div style={{color:C.green,fontSize:13,marginTop:4}}>السعر: {bikeRate>0?`${bikeRate} جنيه/أوردر`:"لم يحدده مدير التشغيل بعد"}</div>
+          <div style={{color:C.yellow,fontWeight:700,fontSize:16,marginTop:6}}>{(bikeOrders*bikeRate).toFixed(2)} جنيه</div>
+        </Card>
+        <Card>
+          <h3 style={{color:C.text,margin:"0 0 10px",fontSize:14}}>🏍️ الموتوسيكل</h3>
+          <div style={{color:C.muted,fontSize:13}}>{motoDels.length} مندوب — {motoOrders.toLocaleString()} أوردر</div>
+          <div style={{color:C.green,fontSize:13,marginTop:4}}>السعر: {motoRate>0?`${motoRate} جنيه/أوردر`:"لم يحدده مدير التشغيل بعد"}</div>
+          <div style={{color:C.yellow,fontWeight:700,fontSize:16,marginTop:6}}>{(motoOrders*motoRate).toFixed(2)} جنيه</div>
+        </Card>
       </div>
 
       <Card>
@@ -1371,19 +1480,22 @@ function OrdersTab({delegates,setDelegates,currentSup,notify,myDelegates,addNoti
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["الاسم","الوسيلة","الأوردرات (آخر أسبوع)","النسبة","العمولة"].map(h=><th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>)}
+              {["الاسم","الوسيلة","الأوردرات (آخر أسبوع)","سعر الأوردر","العمولة"].map(h=><th key={h} style={{padding:"10px 12px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
-            {accepted.map(d=>(
-              <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`}}>
-                <td style={{padding:"11px 12px",color:C.text}}>{d.name}</td>
-                <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
-                <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{(d.orders||0).toLocaleString()}</td>
-                <td style={{padding:"11px 12px",color:C.green}}>{d.commission_rate>0?`${d.commission_rate}%`:<span style={{color:"#445"}}>لم تُحدد بعد</span>}</td>
-                <td style={{padding:"11px 12px",color:C.yellow}}>{((d.orders||0)*(d.commission_rate||0)/100).toFixed(0)}</td>
-              </tr>
-            ))}
+            {accepted.map(d=>{
+              const rate=rateFor(d);
+              return(
+                <tr key={d.id} style={{borderBottom:`1px solid ${C.border}22`}}>
+                  <td style={{padding:"11px 12px",color:C.text}}>{d.name}</td>
+                  <td style={{padding:"11px 12px",color:C.muted,fontSize:13}}>{d.vehicle_type==="موتوسيكل"?"🏍️":"🚲"}</td>
+                  <td style={{padding:"11px 12px",color:C.purple,fontWeight:700}}>{(d.orders||0).toLocaleString()}</td>
+                  <td style={{padding:"11px 12px",color:C.green}}>{rate>0?`${rate} ج`:<span style={{color:"#445"}}>لم يُحدد</span>}</td>
+                  <td style={{padding:"11px 12px",color:C.yellow}}>{((d.orders||0)*rate).toFixed(2)} ج</td>
+                </tr>
+              );
+            })}
             {accepted.length===0&&(
               <tr><td colSpan={5} style={{padding:"20px",textAlign:"center",color:C.muted}}>لا يوجد مناديب مقبولون حتى الآن</td></tr>
             )}
