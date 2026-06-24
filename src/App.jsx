@@ -1,48 +1,47 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import * as XLSX from "xlsx";
+import { createClient } from "@supabase/supabase-js";
 
-// ─── Supabase REST Client (no external library) ───────────────────────────
+// ─── Supabase Client (real client — needed for Auth + RLS to work) ───────
 const SUPA_URL = "https://hlksnbrzumzfgjsefxgv.supabase.co";
 const SUPA_KEY = "sb_publishable_POxQAK5GFStpapGU4q_aUA_GzRw84bq";
+const supa = createClient(SUPA_URL, SUPA_KEY);
 
-// ─── Simple DB helpers ───────────────────────────────────────────────────
-const H = () => ({
-  "Content-Type": "application/json",
-  "apikey": SUPA_KEY,
-  "Authorization": `Bearer ${SUPA_KEY}`,
-  "Prefer": "return=representation",
-});
+// Supabase Auth requires an email-shaped identity. Since supervisors log in
+// with a phone number, we map phone -> a deterministic fake email under a
+// domain we own conceptually. The phone number itself is never shown to
+// the person — they only ever see/type the phone number in the UI.
+const phoneToFakeEmail = (phone) => `phone_${phone.trim()}@managedesk.internal`;
 
+// ─── Simple DB helpers — now backed by the real client so RLS (auth.uid())
+// is correctly applied using the logged-in user's session token. ──────────
 const dbSelect = async (table, filters={}, containsFilter=null) => {
-  let url = `${SUPA_URL}/rest/v1/${table}?select=*`;
-  Object.entries(filters).forEach(([k,v]) => { url += `&${k}=eq.${encodeURIComponent(String(v))}`; });
-  if(containsFilter) Object.entries(containsFilter).forEach(([k,v]) => { url += `&${k}=cs.{${v.join(",")}}`; });
   try {
-    const res = await fetch(url, {headers: H()});
-    const data = await res.json();
+    let q = supa.from(table).select("*");
+    Object.entries(filters).forEach(([k,v]) => { q = q.eq(k, v); });
+    if (containsFilter) Object.entries(containsFilter).forEach(([k,v]) => { q = q.contains(k, v); });
+    const { data, error } = await q;
+    if (error) { console.error("dbSelect error", error); return []; }
     return Array.isArray(data) ? data : [];
-  } catch(e) { console.error("dbSelect error",e); return []; }
+  } catch(e) { console.error("dbSelect error", e); return []; }
 };
 
 const dbSelectOne = async (table, filters={}) => {
-  let url = `${SUPA_URL}/rest/v1/${table}?select=*`;
-  Object.entries(filters).forEach(([k,v]) => { url += `&${k}=eq.${encodeURIComponent(String(v))}`; });
   try {
-    const res = await fetch(url, {headers: H()});
-    const data = await res.json();
-    const arr = Array.isArray(data) ? data : [];
-    return arr[0] || null;
+    let q = supa.from(table).select("*");
+    Object.entries(filters).forEach(([k,v]) => { q = q.eq(k, v); });
+    const { data, error } = await q.limit(1);
+    if (error || !data || data.length===0) return null;
+    return data[0];
   } catch(e) { return null; }
 };
 
 const dbInsert = async (table, rows) => {
-  const body = Array.isArray(rows) ? rows : [rows];
   try {
-    const res = await fetch(`${SUPA_URL}/rest/v1/${table}`, {method:"POST", headers:H(), body:JSON.stringify(body)});
-    if (!res.ok) {
-      const errBody = await res.text().catch(()=>"");
-      console.error("dbInsert failed", res.status, errBody);
-      return { ok:false, status:res.status, error:errBody };
+    const { error } = await supa.from(table).insert(rows);
+    if (error) {
+      console.error("dbInsert failed", error);
+      return { ok:false, status:error.code, error:error.message };
     }
     return { ok:true };
   } catch(e) {
@@ -52,74 +51,41 @@ const dbInsert = async (table, rows) => {
 };
 
 const dbUpdate = async (table, vals, filters={}) => {
-  let url = `${SUPA_URL}/rest/v1/${table}?`;
-  Object.entries(filters).forEach(([k,v]) => { url += `${k}=eq.${encodeURIComponent(String(v))}&`; });
   try {
-    const res = await fetch(url, {method:"PATCH", headers:H(), body:JSON.stringify(vals)});
-    return res.ok;
+    let q = supa.from(table).update(vals);
+    Object.entries(filters).forEach(([k,v]) => { q = q.eq(k, v); });
+    const { error } = await q;
+    if (error) console.error("dbUpdate failed", error);
+    return !error;
   } catch(e) { return false; }
 };
 
 const dbDelete = async (table, filters={}) => {
-  let url = `${SUPA_URL}/rest/v1/${table}?`;
-  Object.entries(filters).forEach(([k,v]) => { url += `${k}=eq.${encodeURIComponent(String(v))}&`; });
   try {
-    const res = await fetch(url, {method:"DELETE", headers:H()});
-    return res.ok;
+    let q = supa.from(table).delete();
+    Object.entries(filters).forEach(([k,v]) => { q = q.eq(k, v); });
+    const { error } = await q;
+    return !error;
   } catch(e) { return false; }
 };
 
-// dummy so old sb.channel calls don't break
-const sb = {
-  from: (table) => ({
-    select: (cols="*") => ({
-      _table: table, _cols: cols, _filters: [],
-      eq: function(col,val){ this._filters.push(`${col}=eq.${val}`); return this; },
-      contains: function(col,val){ this._filters.push(`${col}=cs.{${val.join(",")}}`); return this; },
-      order: function(col,opts){ this._order=`${col}.${opts?.ascending===false?"desc":"asc"}`; return this; },
-      single: async function(){
-        const q=this._filters.length?`?${this._filters.join("&")}`:"";
-        const res=await fetch(`${SUPA_URL}/rest/v1/${this._table}?select=${this._cols}${q?`&${this._filters.join("&")}`:q}`,{headers:{...sb._headers,"Accept":"application/vnd.pgrst.object+json"}});
-        const data=await res.json();
-        return res.ok?{data,error:null}:{data:null,error:data};
-      },
-      then: async function(resolve){
-        let url=`${SUPA_URL}/rest/v1/${table}?select=${cols}`;
-        if(this._filters.length) url+=`&${this._filters.join("&")}`;
-        if(this._order) url+=`&order=${this._order}`;
-        const res=await fetch(url,{headers:sb._headers});
-        const data=await res.json();
-        resolve(res.ok?{data,error:null}:{data:null,error:data});
-      },
-    }),
-    insert: async (rows) => {
-      const body=Array.isArray(rows)?rows:[rows];
-      const res=await fetch(`${SUPA_URL}/rest/v1/${table}`,{method:"POST",headers:sb._headers,body:JSON.stringify(body)});
-      const data=await res.json().catch(()=>[]);
-      return res.ok?{data,error:null}:{data:null,error:data};
-    },
-    update: (vals) => ({
-      _table: table, _vals: vals, _filters: [],
-      eq: function(col,val){ this._filters.push(`${col}=eq.${val}`); return this; },
-      then: async function(resolve){
-        const q=this._filters.length?`?${this._filters.join("&")}`:"";
-        const res=await fetch(`${SUPA_URL}/rest/v1/${table}${q}`,{method:"PATCH",headers:sb._headers,body:JSON.stringify(vals)});
-        const data=await res.json().catch(()=>[]);
-        resolve(res.ok?{data,error:null}:{data:null,error:data});
-      },
-    }),
-    delete: () => ({
-      _filters: [],
-      eq: function(col,val){ this._filters.push(`${col}=eq.${val}`); return this; },
-      then: async function(resolve){
-        const q=this._filters.length?`?${this._filters.join("&")}`:"";
-        const res=await fetch(`${SUPA_URL}/rest/v1/${table}${q}`,{method:"DELETE",headers:sb._headers});
-        resolve(res.ok?{data:null,error:null}:{data:null,error:await res.json()});
-      },
-    }),
-  }),
-  channel: () => ({ on: () => ({ subscribe: () => ({}) }) }),
-  removeChannel: () => {},
+// ─── Auth helpers ──────────────────────────────────────────────────────
+const authSignIn = async (phone, password) => {
+  const email = phoneToFakeEmail(phone);
+  const { data, error } = await supa.auth.signInWithPassword({ email, password });
+  if (error) return { ok:false, error: error.message };
+  return { ok:true, session: data.session, authUser: data.user };
+};
+
+const authSignUp = async (phone, password) => {
+  const email = phoneToFakeEmail(phone);
+  const { data, error } = await supa.auth.signUp({ email, password });
+  if (error) return { ok:false, error: error.message };
+  return { ok:true, authUser: data.user };
+};
+
+const authSignOut = async () => {
+  await supa.auth.signOut();
 };
 
 // ─── Seed Data (runs once if tables empty) ────────────────────────────────
@@ -378,17 +344,21 @@ function LoginScreen({onLogin}){
     if(!phone.trim()||!pass.trim()){setErr("أدخل رقم الهاتف وكلمة المرور");return;}
     setLoading(true);setErr("");
     try{
-      // Check ops manager first (local check, no DB needed)
-      if(phone.trim()===OPS_MANAGER.phone&&pass.trim()===OPS_MANAGER.password_hash){
-        onLogin(OPS_MANAGER);return;
+      const result = await authSignIn(phone.trim(), pass.trim());
+      if(!result.ok){
+        setErr("رقم الهاتف أو كلمة المرور غير صحيحة");
+        return;
       }
-      // Check seed supervisors locally first (in case DB not seeded yet)
-      const localSup=SEED_SUPERVISORS.find(s=>s.phone===phone.trim()&&s.password_hash===pass.trim());
-      if(localSup){ onLogin(localSup); return; }
-      // Then check DB
-      const row=await dbSelectOne("supervisors",{phone:phone.trim(),password_hash:pass.trim()});
-      if(!row){setErr("رقم الهاتف أو كلمة المرور غير صحيحة");}
-      else onLogin(row);
+      // Auth succeeded — now load this person's profile row to know
+      // their role/name/etc. The row is matched by auth_id (the Supabase
+      // Auth user id), which only that signed-in user can read thanks to RLS.
+      const profile = await dbSelectOne("supervisors", { auth_id: result.authUser.id });
+      if(!profile){
+        setErr("تم تسجيل الدخول لكن لم يتم العثور على بيانات الحساب. تواصل مع مدير التشغيل.");
+        await authSignOut();
+        return;
+      }
+      onLogin(profile);
     }catch(e){setErr("حدث خطأ، حاول مجدداً");}
     finally{setLoading(false);}
   };
@@ -416,16 +386,6 @@ function LoginScreen({onLogin}){
           <Btn onClick={attempt} disabled={loading} style={{width:"100%",padding:"12px",fontSize:15}}>
             {loading?"جاري التحقق...":"دخول →"}
           </Btn>
-          <div style={{marginTop:16,background:C.panel,borderRadius:8,padding:"12px 14px"}}>
-            <div style={{color:C.muted,fontSize:11,marginBottom:8,fontWeight:600}}>حسابات تجريبية:</div>
-            {[...SEED_SUPERVISORS,OPS_MANAGER].map(s=>(
-              <div key={s.id} onClick={()=>{setPhone(s.phone);setPass(s.password_hash);}} style={{fontSize:12,color:"#556",marginBottom:4,cursor:"pointer",padding:"4px 8px",borderRadius:6,transition:"background .15s"}}
-                onMouseEnter={e=>e.currentTarget.style.background=C.border}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                {s.role==="ops"?"⚙️":"👤"} <strong style={{color:C.muted}}>{s.name}</strong> — 📱{s.phone} | 🔑{s.password_hash}
-              </div>
-            ))}
-          </div>
         </Card>
       </div>
     </div>
@@ -459,23 +419,10 @@ export default function App(){
     setToast({msg,type});setTimeout(()=>setToast(null),3500);
   },[]);
 
-  // ── Seed DB on first load ──
-  const seedIfEmpty=async()=>{
-    const{data:sups}=await (async()=>{ const d=await dbSelect("supervisors"); return {data:d}; })();
-    if(!sups||sups.length===0){
-      await dbInsert("supervisors", SEED_SUPERVISORS);
-      await dbInsert("delegates", SEED_DELEGATES);
-      const now=Date.now();
-      await dbInsert("conversations", [{id:"CONV001",participants:["SUP001","OPS001"]},{id:"CONV002",participants:["SUP002","OPS001"]}]);
-      await dbInsert("messages", [{id:"MSG1",conv_id:"CONV001",sender_id:"OPS001",content:"مرحباً أحمد، كيف حال فريق المناديب لديك؟",created_at:now-7200000,read_by:["OPS001"]},{id:"MSG2",conv_id:"CONV001",sender_id:"SUP001",content:"الحمد لله، لدينا مندوبان مقبولان ويعملان بشكل ممتاز 💪",created_at:now-3600000,read_by:["SUP001","OPS001"]},{id:"MSG3",conv_id:"CONV002",sender_id:"OPS001",content:"سارة، هل تحتاجين مساعدة في مراجعة المناديب الجدد؟",created_at:now-86400000,read_by:["OPS001"]}]);
-    }
-  };
-
-  // ── Load all data ──
+  // ── Load all data (auth + RLS now correctly scope what each user can see) ──
   const loadAll=async(user)=>{
     setLoading(true);
     try{
-      await seedIfEmpty();
       const isOps=user.role==="ops";
       const[sups,dels,nots,convs,msgs]=await Promise.all([
         dbSelect("supervisors"),
@@ -503,23 +450,34 @@ export default function App(){
     await loadAll(user);
   };
 
-  // ── Real-time subscriptions ──
+  // ── Restore session on page refresh ──
+  useEffect(()=>{
+    (async()=>{
+      const { data } = await supa.auth.getSession();
+      if(data?.session?.user){
+        const profile = await dbSelectOne("supervisors", { auth_id: data.session.user.id });
+        if(profile) await handleLogin(profile);
+      }
+    })();
+  },[]);
+
+  // ── Real-time subscriptions (now functional with the real client) ──
   useEffect(()=>{
     if(!currentUser) return;
-    const msgSub=sb.channel("messages-channel")
+    const msgSub=supa.channel("messages-channel")
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},payload=>{
         const newMsg=payload.new;
         setConversations(prev=>prev.map(c=>
           c.id===newMsg.conv_id?{...c,messages:[...c.messages,newMsg]}:c
         ));
       }).subscribe();
-    const notifSub=sb.channel("notifs-channel")
+    const notifSub=supa.channel("notifs-channel")
       .on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},payload=>{
         if(payload.new.sup_id===currentUser.id){
           setNotifs(prev=>[payload.new,...prev]);
         }
       }).subscribe();
-    return()=>{sb.removeChannel(msgSub);sb.removeChannel(notifSub);};
+    return()=>{supa.removeChannel(msgSub);supa.removeChannel(notifSub);};
   },[currentUser]);
 
   if(!currentUser) return <LoginScreen onLogin={handleLogin}/>;
@@ -599,7 +557,7 @@ export default function App(){
               <div style={{fontSize:11,color:isOps?C.purple:C.muted}}>{isOps?"مدير التشغيل":"مشرف | "+currentUser.id}</div>
             </div>
           </div>
-          <Btn variant="ghost" onClick={()=>{setCurrentUser(null);setDelegatesState([]);setNotifs([]);setConversations([]);}} style={{padding:"6px 12px",fontSize:12}}>خروج ↩</Btn>
+          <Btn variant="ghost" onClick={async()=>{await authSignOut();setCurrentUser(null);setDelegatesState([]);setNotifs([]);setConversations([]);}} style={{padding:"6px 12px",fontSize:12}}>خروج ↩</Btn>
         </div>
       </div>
 
@@ -941,6 +899,40 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
     setRenameId(null);
   };
 
+  const [showAddSup,setShowAddSup]=useState(false);
+  const [newSupName,setNewSupName]=useState("");
+  const [newSupPhone,setNewSupPhone]=useState("");
+  const [newSupPass,setNewSupPass]=useState("");
+  const [addingSup,setAddingSup]=useState(false);
+
+  const createSupervisor=async()=>{
+    if(!newSupName.trim()){notify("❗ أدخل الاسم","error");return;}
+    if(!newSupPhone.trim()){notify("❗ أدخل رقم الهاتف","error");return;}
+    if(newSupPass.trim().length<6){notify("❗ كلمة المرور يجب أن تكون 6 أحرف على الأقل","error");return;}
+    if(supervisors.find(s=>s.phone===newSupPhone.trim())){notify("❗ رقم الهاتف مسجل مسبقاً","error");return;}
+    setAddingSup(true);
+    try{
+      const signUpResult = await authSignUp(newSupPhone.trim(), newSupPass.trim());
+      if(!signUpResult.ok){
+        notify("❌ فشل إنشاء الحساب: "+signUpResult.error,"error");
+        return;
+      }
+      const newId=genId("SUP");
+      const profileResult = await dbInsert("supervisors",{
+        id:newId, auth_id:signUpResult.authUser.id, name:newSupName.trim(),
+        phone:newSupPhone.trim(), role:"supervisor", bike_rate:0, moto_rate:0,
+      });
+      if(!profileResult.ok){
+        notify("❌ فشل حفظ بيانات المشرف: "+profileResult.error,"error");
+        return;
+      }
+      setSupervisors(prev=>[...prev,{id:newId,name:newSupName.trim(),phone:newSupPhone.trim(),role:"supervisor",bike_rate:0,moto_rate:0}]);
+      notify(`✅ تم إنشاء حساب المشرف ${newSupName.trim()} — يمكنه الآن الدخول برقم هاتفه وكلمة المرور`);
+      setNewSupName("");setNewSupPhone("");setNewSupPass("");setShowAddSup(false);
+    }catch(e){notify("❌ خطأ: "+e.message,"error");}
+    finally{setAddingSup(false);}
+  };
+
   const [detailSupId,setDetailSupId]=useState(null);
 
   if(detailSupId){
@@ -958,6 +950,24 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
         <StatBox label="قيد المراجعة"      value={pending.length}     accent={C.yellow}/>
         <StatBox label="إجمالي الأوردرات" value={totalOrders.toLocaleString()} accent="#f97316" sub="لجميع المناديب"/>
       </div>
+
+      {/* Add new supervisor — creates a real Supabase Auth account */}
+      <Card style={{marginBottom:22}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setShowAddSup(s=>!s)}>
+          <h3 style={{color:C.text,margin:0,fontSize:15}}>➕ إضافة مشرف جديد</h3>
+          <span style={{color:C.muted,fontSize:18}}>{showAddSup?"−":"+"}</span>
+        </div>
+        {showAddSup&&(
+          <div style={{marginTop:16}}>
+            <Inp label="اسم المشرف" placeholder="أحمد محمود" value={newSupName} onChange={e=>setNewSupName(e.target.value)}/>
+            <Inp label="رقم الهاتف (للدخول)" placeholder="05XXXXXXXX" value={newSupPhone} onChange={e=>setNewSupPhone(e.target.value)}/>
+            <Inp label="كلمة المرور (6 أحرف على الأقل)" type="text" placeholder="••••••" value={newSupPass} onChange={e=>setNewSupPass(e.target.value)}/>
+            <Btn onClick={createSupervisor} disabled={addingSup} style={{width:"100%",padding:"11px",marginTop:8}}>
+              {addingSup?"⏳ جاري الإنشاء...":"✅ إنشاء حساب المشرف"}
+            </Btn>
+          </div>
+        )}
+      </Card>
 
       {/* Excel upload — ops only */}
       <Card style={{marginBottom:22}}>
