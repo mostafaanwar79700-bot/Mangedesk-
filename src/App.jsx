@@ -374,7 +374,8 @@ function LoginScreen({onLogin}){
     if(!suZone.trim()){setSuErr("أدخل الزون");return;}
     setSuLoading(true);setSuErr("");
     try{
-      const signUpResult = await authSignUp(suPhone.trim(), suPass.trim());
+      const { data: signUpData, error: signUpError } = await supa.auth.signUp({ email: phoneToFakeEmail(suPhone.trim()), password: suPass.trim() });
+      const signUpResult = signUpError ? { ok:false, error: signUpError.message } : { ok:true, authUser: signUpData.user };
       if(!signUpResult.ok){ setSuErr("فشل إنشاء الحساب: "+signUpResult.error); return; }
       const newId = genId("SUP");
       const profileResult = await dbInsert("supervisors",{
