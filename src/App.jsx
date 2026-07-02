@@ -398,10 +398,9 @@ function LoginScreen({onLogin}){
   <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}} dir="rtl">
     <div style={{width:"100%",maxWidth:420,padding:"0 16px"}}>
       <div style={{textAlign:"center",marginBottom:32}}>
-        <div style={{width:64,height:64,background:C.blue,borderRadius:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:28,marginBottom:12}}>📋</div>
-        <div style={{fontSize:24,fontWeight:800,color:C.text}}>ManageDesk</div>
-        <div style={{color:C.muted,fontSize:13,marginTop:4}}>نظام إدارة المناديب</div>
-      </div>
+<img src="/png.jpg" alt="Raider Assist" style={{width:92,height:92,borderRadius:22,marginBottom:12,boxShadow:"0 10px 26px rgba(0,0,0,.4)"}}/>
+<div style={{fontSize:24,fontWeight:800,color:C.text}}>Raider Assist</div>
+<div style={{color:C.muted,fontSize:13,marginTop:4}}>ندعم المندوب . تنجح أنت</div>
 
       {mode==="login" ? (
         <Card>
@@ -590,11 +589,11 @@ export default function App(){
       {/* Header */}
       <div style={{background:C.panel,borderBottom:`1px solid ${C.border}`,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",height:64}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{width:38,height:38,background:C.blue,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff"}}>M</div>
-          <div>
-            <div style={{fontWeight:800,fontSize:16,color:C.text}}>ManageDesk</div>
-            <div style={{fontSize:11,color:"#334"}}>نظام إدارة المناديب</div>
-          </div>
+<img src="/png.jpg" alt="" style={{width:38,height:38,borderRadius:10,objectFit:"cover"}}/>
+<div>
+  <div style={{fontWeight:800,fontSize:16,color:C.text}}>Raider Assist</div>
+  <div style={{fontSize:11,color:"#334"}}>نظام إدارة المناديب</div>
+</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:18}}>
           <div onClick={()=>setTab("messages")} style={{cursor:"pointer",position:"relative",fontSize:22,userSelect:"none"}}>
