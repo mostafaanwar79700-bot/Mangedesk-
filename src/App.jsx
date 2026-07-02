@@ -401,7 +401,7 @@ function LoginScreen({onLogin}){
 <img src="/png.jpg" alt="Raider Assist" style={{width:92,height:92,borderRadius:22,marginBottom:12,boxShadow:"0 10px 26px rgba(0,0,0,.4)"}}/>
 <div style={{fontSize:24,fontWeight:800,color:C.text}}>Raider Assist</div>
 <div style={{color:C.muted,fontSize:13,marginTop:4}}>ندعم المندوب . تنجح أنت</div>
-
+</div>
       {mode==="login" ? (
         <Card>
           <div style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:20,textAlign:"center"}}>تسجيل الدخول</div>
