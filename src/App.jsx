@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 const SUPA_URL = "https://hlksnbrzumzfgjsefxgv.supabase.co";
 const SUPA_KEY = "sb_publishable_POxQAK5GFStpapGU4q_aUA_GzRw84bq";
 const supa = createClient(SUPA_URL, SUPA_KEY);
+const supaAdmin = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
 
 // Supabase Auth requires an email-shaped identity. Since supervisors log in
 // with a phone number, we map phone -> a deterministic fake email under a
@@ -79,7 +80,7 @@ const authSignIn = async (phone, password) => {
 
 const authSignUp = async (phone, password) => {
   const email = phoneToFakeEmail(phone);
-  const { data, error } = await supa.auth.signUp({ email, password });
+  const { data, error } = await supaAdmin.auth.signUp({ email, password });
   if (error) return { ok:false, error: error.message };
   return { ok:true, authUser: data.user };
 };
