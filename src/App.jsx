@@ -334,65 +334,115 @@ function NotifBell({notifs,onRead,onClear}){
 }
 
 // ══════════════════ LOGIN ══════════════════════════════════════════════════
+
 function LoginScreen({onLogin}){
+  const [mode,setMode]=useState("login");
   const [phone,setPhone]=useState("");
   const [pass,setPass]=useState("");
   const [err,setErr]=useState("");
   const [show,setShow]=useState(false);
   const [loading,setLoading]=useState(false);
 
-  const attempt=async()=>{
+  const [suName,setSuName]=useState("");
+  const [suPhone,setSuPhone]=useState("");
+  const [suPass,setSuPass]=useState("");
+  const [suZone,setSuZone]=useState("");
+  const [suErr,setSuErr]=useState("");
+  const [suLoading,setSuLoading]=useState(false);
+
+  const attempt=async ()=>{
     if(!phone.trim()||!pass.trim()){setErr("أدخل رقم الهاتف وكلمة المرور");return;}
     setLoading(true);setErr("");
     try{
       const result = await authSignIn(phone.trim(), pass.trim());
-      if(!result.ok){
-        setErr("رقم الهاتف أو كلمة المرور غير صحيحة");
-        return;
-      }
-      // Auth succeeded — now load this person's profile row to know
-      // their role/name/etc. The row is matched by auth_id (the Supabase
-      // Auth user id), which only that signed-in user can read thanks to RLS.
+      if(!result.ok){ setErr("رقم الهاتف أو كلمة المرور غير صحيحة"); return; }
       const profile = await dbSelectOne("supervisors", { auth_id: result.authUser.id });
       if(!profile){
-        setErr("تم تسجيل الدخول لكن لم يتم العثور على بيانات الحساب. تواصل مع مدير التشغيل.");
+        setErr("تم تسجيل الدخول لكن لم يتم العثور على بيانات الحساب، تواصل مع مدير التشغيل");
         await authSignOut();
         return;
       }
       onLogin(profile);
-    }catch(e){setErr("حدث خطأ، حاول مجدداً");}
+    }catch(e){setErr("حدث خطأ، حاول مجددا");}
     finally{setLoading(false);}
   };
 
+  const attemptSignup=async ()=>{
+    if(!suName.trim()){setSuErr("أدخل الاسم");return;}
+    if(!suPhone.trim()){setSuErr("أدخل رقم الهاتف");return;}
+    if(suPass.trim().length<6){setSuErr("كلمة المرور يجب أن تكون 6 أحرف على الأقل");return;}
+    if(!suZone.trim()){setSuErr("أدخل الزون");return;}
+    setSuLoading(true);setSuErr("");
+    try{
+      const signUpResult = await authSignUp(suPhone.trim(), suPass.trim());
+      if(!signUpResult.ok){ setSuErr("فشل إنشاء الحساب: "+signUpResult.error); return; }
+      const newId = genId("SUP");
+      const profileResult = await dbInsert("supervisors",{
+        id:newId, auth_id:signUpResult.authUser.id, name:suName.trim(),
+        phone:suPhone.trim(), zone:suZone.trim(), role:"supervisor", bike_rate:0, moto_rate:0,
+      });
+      if(!profileResult.ok){ setSuErr("فشل حفظ بيانات الحساب: "+profileResult.error); return; }
+      const loginResult = await authSignIn(suPhone.trim(), suPass.trim());
+      if(loginResult.ok){
+        const profile = await dbSelectOne("supervisors", { auth_id: loginResult.authUser.id });
+        if(profile){ onLogin(profile); return; }
+      }
+      setMode("login"); setPhone(suPhone.trim());
+      setSuName("");setSuPhone("");setSuPass("");setSuZone("");
+    }catch(e){setSuErr("حدث خطأ، حاول مجددا");}
+    finally{setSuLoading(false);}
+  };
+
   return(
-    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}} dir="rtl">
-      <div style={{width:"100%",maxWidth:420,padding:"0 16px"}}>
-        <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{width:64,height:64,background:C.blue,borderRadius:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:30,fontWeight:900,color:"#fff",marginBottom:14}}>M</div>
-          <div style={{fontSize:24,fontWeight:800,color:C.text}}>ManageDesk</div>
-          <div style={{color:C.muted,fontSize:13,marginTop:4}}>نظام إدارة المناديب</div>
-        </div>
+  <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center"}} dir="rtl">
+    <div style={{width:"100%",maxWidth:420,padding:"0 16px"}}>
+      <div style={{textAlign:"center",marginBottom:32}}>
+        <div style={{width:64,height:64,background:C.blue,borderRadius:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:28,marginBottom:12}}>📋</div>
+        <div style={{fontSize:24,fontWeight:800,color:C.text}}>ManageDesk</div>
+        <div style={{color:C.muted,fontSize:13,marginTop:4}}>نظام إدارة المناديب</div>
+      </div>
+
+      {mode==="login" ? (
         <Card>
           <div style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:20,textAlign:"center"}}>تسجيل الدخول</div>
-          <Inp label="رقم الهاتف" type="tel" placeholder="05XXXXXXXX" value={phone} onChange={e=>setPhone(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()}/>
+          <Inp label="رقم الهاتف" type="tel" placeholder="05XXXXXXXX" value={phone} onChange={e=>setPhone(e.target.value)}/>
           <div style={{marginBottom:14}}>
             <label style={{display:"block",color:C.muted,fontSize:12,marginBottom:5}}>كلمة المرور</label>
             <div style={{position:"relative"}}>
-              <input type={show?"text":"password"} placeholder="••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attempt()}
-                style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"9px 40px 9px 13px",fontSize:14,outline:"none",boxSizing:"border-box"}}/>
-              <span onClick={()=>setShow(s=>!s)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",fontSize:16,color:C.muted,userSelect:"none"}}>{show?"🙈":"👁️"}</span>
+              <input type={show?"text":"password"} placeholder="••••••" value={pass} onChange={e=>setPass(e.target.value)}
+               style={{width:"100%",background:C.panel,border:`1px solid ${C.border}`,color:C.text,borderRadius:8,padding:"10px 12px"}}/>
+              <span onClick={()=>setShow(s=>!s)} style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",cursor:"pointer",color:C.muted,fontSize:12}}>{show?"إخفاء":"إظهار"}</span>
             </div>
           </div>
-          {err&&<div style={{background:"#3d0d0d",border:`1px solid ${C.red}`,borderRadius:8,padding:"10px 14px",marginBottom:14,color:C.red,fontSize:13}}>{err}</div>}
+          {err&&<div style={{background:"#3d0d0d",border:`1px solid ${C.red}`,borderRadius:8,padding:"10px 14px",marginBottom:14,color:"#fca5a5",fontSize:13}}>{err}</div>}
           <Btn onClick={attempt} disabled={loading} style={{width:"100%",padding:"12px",fontSize:15}}>
-            {loading?"جاري التحقق...":"دخول →"}
+            {loading?"جاري التحقق...":"→ دخول"}
           </Btn>
+          <div onClick={()=>{setMode("signup");setErr("");}} style={{textAlign:"center",marginTop:16,color:C.blue,fontSize:13,cursor:"pointer"}}>
+            ليس لدي حساب؟ سجل الآن
+          </div>
         </Card>
-      </div>
+      ) : (
+        <Card>
+          <div style={{fontSize:17,fontWeight:700,color:C.text,marginBottom:20,textAlign:"center"}}>تسجيل حساب مشرف جديد</div>
+          <Inp label="الاسم" type="text" placeholder="اسمك الكامل" value={suName} onChange={e=>setSuName(e.target.value)}/>
+          <Inp label="رقم الهاتف (للدخول)" type="tel" placeholder="05XXXXXXXX" value={suPhone} onChange={e=>setSuPhone(e.target.value)}/>
+          <Inp label="الزون" type="text" placeholder="مثال: الاسكندرية" value={suZone} onChange={e=>setSuZone(e.target.value)}/>
+          <Inp label="كلمة المرور (6 أحرف على الأقل)" type="password" placeholder="••••••" value={suPass} onChange={e=>setSuPass(e.target.value)}/>
+          {suErr&&<div style={{background:"#3d0d0d",border:`1px solid ${C.red}`,borderRadius:8,padding:"10px 14px",marginBottom:14,color:"#fca5a5",fontSize:13}}>{suErr}</div>}
+          <Btn onClick={attemptSignup} disabled={suLoading} style={{width:"100%",padding:"12px",fontSize:15}}>
+            {suLoading?"جاري إنشاء الحساب...":"✅ إنشاء الحساب"}
+          </Btn>
+          <div onClick={()=>{setMode("login");setSuErr("");}} style={{textAlign:"center",marginTop:16,color:C.blue,fontSize:13,cursor:"pointer"}}>
+            لدي حساب بالفعل؟ سجل الدخول
+          </div>
+        </Card>
+      )}
     </div>
+  </div>
   );
 }
-
+  
 // ══════════════════ MAIN APP ══════════════════════════════════════════════
 const SUP_TABS=[
   {id:"dashboard", label:"📊 لوحة التحكم"},
