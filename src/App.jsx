@@ -1040,7 +1040,7 @@ const toggleBlock=async(sup)=>{
 
   if(detailSupId){
     const sup=supervisors.find(s=>s.id===detailSupId);
-    return <SupervisorDetailPanel sup={sup} delegates={delegates} onBack={()=>setDetailSupId(null)} saveSupervisorRates={saveSupervisorRates}/>;
+  return <SupervisorDetailPanel sup={sup} delegates={delegates} onBack={()=>setDetailSupId(null)} saveSupervisorRates={saveSupervisorRates} deleteDelegate={deleteDelegate} reassignDelegate={reassignDelegate} supervisors={supervisors}/>;
   }
 
   return(
@@ -1260,7 +1260,7 @@ const toggleBlock=async(sup)=>{
 }
 
 // ══════════════════ SUPERVISOR DETAIL PANEL (commission rates) ═══════════
-function SupervisorDetailPanel({sup,delegates,onBack,saveSupervisorRates}){
+function SupervisorDetailPanel({sup,delegates,onBack,saveSupervisorRates,deleteDelegate,reassignDelegate,supervisors}){
   const md=delegates.filter(d=>d.supervisor_id===sup.id&&d.status==="مقبول");
   const bikeDels=md.filter(d=>d.vehicle_type==="دراجة هوائية");
   const motoDels=md.filter(d=>d.vehicle_type==="موتوسيكل");
