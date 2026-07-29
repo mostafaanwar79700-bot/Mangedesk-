@@ -631,7 +631,7 @@ export default function App(){
         {tab==="orders"        && <OrdersTab currentSup={currentSupFresh} myDelegates={myDelegates}/>}
         {tab==="messages"      && <MessagingTab currentUser={currentUser} conversations={conversations} setConversations={setConversations} supervisors={supervisors} addNotifDB={addNotifDB}/>}
         {tab==="supervisor"    && <SupervisorTab supervisors={supervisors} setSupervisors={setSupervisors} notify={notify}/>}
-        {tab==="ops_dashboard" && <OpsDashboard delegates={delegates} setDelegates={setDelegates} supervisors={supervisors} setSupervisors={setSupervisors} changeStatus={changeStatus} notify={notify} addNotifDB={addNotifDB}/>}
+        {tab==="ops_dashboard" && <OpsDashboard delegates={delegates} setDelegates={setDelegates} supervisors={supervisors} setSupervisors={setSupervisors} changeStatus={changeStatus} notify={notify} addNotifDB={addNotifDB} deleteDelegate={deleteDelegate} reassignDelegate={reassignDelegate}/>}
       </div>
     </div>
   );
