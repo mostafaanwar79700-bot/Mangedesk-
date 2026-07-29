@@ -873,7 +873,8 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
           </div>
         </div>
       )}
-    </div>
+   </div>
+  </>
   );
 }
 
