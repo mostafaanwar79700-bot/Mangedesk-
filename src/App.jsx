@@ -721,7 +721,8 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
     setConversations(prev=>[...prev,{...nc,messages:[]}]);
     setActiveConvId(nc.id);setShowNew(false);setNewSupId("");
   };
-<>
+  return(
+    <>
     <style>{`
       .msg-sidebar{width:280px}
       .msg-back-btn{display:none}
@@ -732,10 +733,9 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
         .msg-back-btn{display:inline-flex !important}
       }
     `}</style>
-  return(
     <div style={{display:"flex",height:"calc(100vh - 130px)",minHeight:500,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
-      {/* Sidebar — only shown to ops manager who may have multiple conversations */}
-      {isOps&&(<div className={`msg-sidebar${activeConvId?" has-active":""}`} style={{flexShrink:0,background:C.panel,borderLeft:`1px solid ${C.border}`,display:"flex",flexDirection:"column"}}>
+      {isOps&&(
+      <div className={`msg-sidebar${activeConvId?" has-active":""}`} style={{flexShrink:0,background:C.panel,borderLeft:`1px solid ${C.border}`,display:"flex",flexDirection:"column"}}>
         <div style={{padding:"16px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontWeight:700,color:C.text,fontSize:15}}>💬 الرسائل</div>
@@ -797,13 +797,13 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
       </div>
       )}
 
-      {/* Chat area */}
+      <div className={`msg-chat-wrap${!activeConvId?" no-active":""}`} style={{flex:1,display:"flex"}}>
       {activeConv?(()=>{
         const other=getOther(activeConv);
         return(
           <div style={{flex:1,display:"flex",flexDirection:"column",background:C.bg}}>
-          {isOps&&<span className="msg-back-btn" onClick={()=>setActiveConvId(null)} style={{cursor:"pointer",fontSize:20,color:C.text}}>→</span>} 
             <div style={{padding:"14px 22px",borderBottom:`1px solid ${C.border}`,background:C.panel,display:"flex",alignItems:"center",gap:14}}>
+              {isOps&&<span className="msg-back-btn" onClick={()=>setActiveConvId(null)} style={{cursor:"pointer",fontSize:20,color:C.text}}>→</span>}
               <div style={{width:42,height:42,background:`${C.blue}33`,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{other.role==="ops"?"⚙️":"👤"}</div>
               <div>
                 <div style={{fontWeight:700,color:C.text,fontSize:15}}>{other.name}</div>
@@ -869,14 +869,14 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
             <div style={{fontSize:56,marginBottom:16}}>💬</div>
             <div style={{fontSize:16,fontWeight:600,color:C.text,marginBottom:8}}>الرسائل الداخلية</div>
             <div style={{fontSize:13}}>{isOps?"اختر محادثة من القائمة":"جاري تجهيز المحادثة مع مدير التشغيل..."}</div>
-    </div>
-   </div>
-  )}
+          </div>
+        </div>
+      )}
+      </div>
     </div>
     </>
   );
-}
-
+        }
 // ══════════════════ OPS DASHBOARD ════════════════════════════════════════
 function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeStatus,notify,addNotifDB}){
   const accepted=delegates.filter(d=>d.status==="مقبول");
