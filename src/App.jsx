@@ -879,7 +879,7 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
   );
         }
 // ══════════════════ OPS DASHBOARD ════════════════════════════════════════
-function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeStatus,notify,addNotifDB}){
+function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeStatus,notify,addNotifDB,deleteDelegate,reassignDelegate}){
   const accepted=delegates.filter(d=>d.status==="مقبول");
   const pending=delegates.filter(d=>d.status==="قيد المراجعة");
   const totalOrders=accepted.reduce((s,d)=>s+(d.orders||0),0);
@@ -1285,7 +1285,32 @@ function SupervisorDetailPanel({sup,delegates,onBack,saveSupervisorRates,deleteD
       <Btn variant="ghost" onClick={onBack} style={{marginBottom:16}}>→ رجوع لكل المشرفين</Btn>
       <h2 style={{color:C.text,marginBottom:6}}>💰 عمولة المشرف: {sup.name}</h2>
       <p style={{color:C.muted,marginBottom:22}}>حدد سعر الأوردر بالجنيه لكل فئة — السعر ينطبق على جميع مناديب هذه الفئة عند هذا المشرف</p>
-
+<Card style={{marginBottom:22}}>
+        <h3 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>👥 مناديب {sup.name} ({delegates.filter(d=>d.supervisor_id===sup.id).length})</h3>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {delegates.filter(d=>d.supervisor_id===sup.id).map(d=>(
+            <div key={d.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:C.panel,padding:"10px 14px",borderRadius:8,flexWrap:"wrap",gap:8}}>
+              <div>
+                <span style={{color:C.text,fontWeight:600}}>{d.name}</span>
+                <span style={{color:"#445",fontSize:11,marginRight:8}}>({d.id})</span>
+                <Badge status={d.status}/>
+              </div>
+              <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                <select onChange={e=>{if(e.target.value)reassignDelegate(d.id,e.target.value);e.target.value="";}}
+                  style={{background:C.dark,border:`1px solid ${C.border}`,color:C.muted,borderRadius:6,padding:"4px 8px",fontSize:11}}>
+                  <option value="">نقل إلى...</option>
+                  {supervisors.filter(s2=>s2.id!==sup.id).map(s2=>(
+                    <option key={s2.id} value={s2.id}>{s2.name}</option>
+                  ))}
+                </select>
+                <Btn variant="danger" onClick={()=>{if(window.confirm(`تأكيد حذف ${d.name}؟`))deleteDelegate(d);}} style={{padding:"4px 10px",fontSize:11}}>🗑️ حذف</Btn>
+              </div>
+            </div>
+          ))}
+          {delegates.filter(d=>d.supervisor_id===sup.id).length===0&&
+            <div style={{color:"#445",fontSize:13,textAlign:"center",padding:"10px 0"}}>لا يوجد مناديب لهذا المشرف</div>}
+        </div>
+      </Card>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:22}}>
         {/* Bike section */}
         <Card>
