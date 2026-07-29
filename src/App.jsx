@@ -735,8 +735,7 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
   return(
     <div style={{display:"flex",height:"calc(100vh - 130px)",minHeight:500,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden"}}>
       {/* Sidebar — only shown to ops manager who may have multiple conversations */}
-      {isOps&&(
-      <div className={`msg-sidebar${activeConvId?" has-active":""}`} style={flexShrink:0,background:C.panel,borderLeft:`1px solid ${C.border}`,display:"flex",flexDirection:"column"}}>
+      {isOps&&(<div className={`msg-sidebar${activeConvId?" has-active":""}`} style={{flexShrink:0,background:C.panel,borderLeft:`1px solid ${C.border}`,display:"flex",flexDirection:"column"}}>
         <div style={{padding:"16px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <div style={{fontWeight:700,color:C.text,fontSize:15}}>💬 الرسائل</div>
