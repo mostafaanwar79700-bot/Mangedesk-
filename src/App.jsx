@@ -869,9 +869,7 @@ function MessagingTab({currentUser,conversations,setConversations,supervisors,ad
             <div style={{fontSize:56,marginBottom:16}}>💬</div>
             <div style={{fontSize:16,fontWeight:600,color:C.text,marginBottom:8}}>الرسائل الداخلية</div>
             <div style={{fontSize:13}}>{isOps?"اختر محادثة من القائمة":"جاري تجهيز المحادثة مع مدير التشغيل..."}</div>
-          </div>
-        </div>
-      )}
+    </div>
    </div>
   )}
     </div>
