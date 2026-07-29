@@ -959,6 +959,40 @@ const toggleBlock=async(sup)=>{
     await dbUpdate("supervisors",{status:newStatus},{id:sup.id});
     setSupervisors(prev=>prev.map(s=>s.id===sup.id?{...s,status:newStatus}:s));
     notify(newStatus==="blocked"?`🚫 تم حظر ${sup.name}`:`✅ تم إلغاء حظر ${sup.name}`);
+  const deleteDelegate=async(del)=>{
+    await dbDelete("delegates",{id:del.id});
+    setDelegates(prev=>Array.isArray(prev)?prev.filter(d=>d.id!==del.id):[]);
+    notify(`🗑️ تم حذف المندوب ${del.name}`);
+  };
+
+  const reassignDelegate=async(delId,newSupId)=>{
+    await dbUpdate("delegates",{supervisor_id:newSupId},{id:delId});
+    setDelegates(prev=>Array.isArray(prev)?prev.map(d=>d.id===delId?{...d,supervisor_id:newSupId}:d):[]);
+    notify("✅ تم نقل المندوب لمشرف آخر");
+  };
+
+  const [showAddDel,setShowAddDel]=useState(false);
+  const [newDelName,setNewDelName]=useState("");
+  const [newDelPhone,setNewDelPhone]=useState("");
+  const [newDelSup,setNewDelSup]=useState("");
+  const [newDelVehicle,setNewDelVehicle]=useState("موتوسيكل");
+  const [addingDel,setAddingDel]=useState(false);
+
+  const createDelegate=async()=>{
+    if(!newDelName.trim()){notify("❗ أدخل اسم المندوب","error");return;}
+    if(!newDelPhone.trim()){notify("❗ أدخل رقم الهاتف","error");return;}
+    if(!newDelSup){notify("❗ اختر المشرف","error");return;}
+    setAddingDel(true);
+    try{
+      const nd={id:genId("DEL"),supervisor_id:newDelSup,name:newDelName.trim(),phone:newDelPhone.trim(),status:"مقبول",commission_rate:0,orders:0,vehicle_type:newDelVehicle,docs:{}};
+      const result=await dbInsert("delegates",nd);
+      if(!result.ok){notify("❌ فشل الحفظ: "+(result.error||result.status),"error");return;}
+      setDelegates(prev=>[...(Array.isArray(prev)?prev:[]),nd]);
+      notify(`✅ تم إضافة المندوب ${newDelName.trim()}`);
+      setNewDelName("");setNewDelPhone("");setNewDelSup("");setShowAddDel(false);
+    }catch(e){notify("❌ خطأ: "+e.message,"error");}
+    finally{setAddingDel(false);}
+  };
   };
   const saveRename=async(id)=>{
     if(!renameVal.trim()){notify("❗ أدخل اسماً","error");return;}
@@ -1021,6 +1055,26 @@ const toggleBlock=async(sup)=>{
       </div>
 
       {/* Add new supervisor — creates a real Supabase Auth account */}
+      {/* Add new delegate directly — ops only */}
+      <Card style={{marginBottom:22}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setShowAddDel(s=>!s)}>
+          <h3 style={{color:C.text,margin:0,fontSize:15}}>➕ إضافة مندوب مباشرة</h3>
+          <span style={{color:C.muted,fontSize:18}}>{showAddDel?"−":"+"}</span>
+        </div>
+        {showAddDel&&(
+          <div style={{marginTop:16}}>
+            <Inp label="اسم المندوب" placeholder="محمد أحمد" value={newDelName} onChange={e=>setNewDelName(e.target.value)}/>
+            <Inp label="رقم الهاتف" placeholder="05XXXXXXXX" value={newDelPhone} onChange={e=>setNewDelPhone(e.target.value)}/>
+            <Sel label="المشرف التابع له" value={newDelSup} onChange={e=>setNewDelSup(e.target.value)}
+              options={[{value:"",label:"-- اختر مشرفاً --"},...supervisors.map(s=>({value:s.id,label:s.name}))]}/>
+            <Sel label="وسيلة التوصيل" value={newDelVehicle} onChange={e=>setNewDelVehicle(e.target.value)}
+              options={[{value:"موتوسيكل",label:"🏍️ موتوسيكل"},{value:"دراجة هوائية",label:"🚲 دراجة هوائية"}]}/>
+            <Btn onClick={createDelegate} disabled={addingDel} style={{width:"100%",padding:"11px",marginTop:8}}>
+              {addingDel?"⏳ جاري الإنشاء...":"✅ إضافة المندوب"}
+            </Btn>
+          </div>
+        )}
+      </Card>
       <Card style={{marginBottom:22}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setShowAddSup(s=>!s)}>
           <h3 style={{color:C.text,margin:0,fontSize:15}}>➕ إضافة مشرف جديد</h3>
