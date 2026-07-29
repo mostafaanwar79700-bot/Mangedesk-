@@ -362,6 +362,7 @@ function LoginScreen({onLogin}){
         await authSignOut();
         return;
       }
+     if(profile.status==="blocked"){setErr("تم حظر حسابك، تواصل مع مدير التشغيل");await authSignOut();return;}
       onLogin(profile);
     }catch(e){setErr("حدث خطأ، حاول مجددا");}
     finally{setLoading(false);}
@@ -953,6 +954,12 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
     return true;
   };
 
+const toggleBlock=async(sup)=>{
+    const newStatus=sup.status==="blocked"?"active":"blocked";
+    await dbUpdate("supervisors",{status:newStatus},{id:sup.id});
+    setSupervisors(prev=>prev.map(s=>s.id===sup.id?{...s,status:newStatus}:s));
+    notify(newStatus==="blocked"?`🚫 تم حظر ${sup.name}`:`✅ تم إلغاء حظر ${sup.name}`);
+  };
   const saveRename=async(id)=>{
     if(!renameVal.trim()){notify("❗ أدخل اسماً","error");return;}
     await dbUpdate("supervisors",{name:renameVal.trim()},{id});
@@ -1152,7 +1159,7 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead>
             <tr style={{background:C.panel,borderBottom:`1px solid ${C.border}`}}>
-              {["المشرف","ID","المناديب","المقبولون","قيد المراجعة","إجمالي الأوردرات",""].map(h=>(
+            {["المشرف","ID","المناديب","المقبولون","قيد المراجعة","إجمالي الأوردرات","","حظر"].map(h=>(
                 <th key={h} style={{padding:"10px 14px",color:C.muted,fontSize:12,fontWeight:700,textAlign:"right"}}>{h}</th>
               ))}
             </tr>
@@ -1182,6 +1189,11 @@ function OpsDashboard({delegates,setDelegates,supervisors,setSupervisors,changeS
                         <Btn variant="ghost" onClick={()=>setRenameId(null)} style={{padding:"4px 10px",fontSize:11}}>إلغاء</Btn>
                       </div>
                       :<Btn variant="ghost" onClick={()=>{setRenameId(s.id);setRenameVal(s.name);}} style={{padding:"4px 10px",fontSize:11}}>✏️ تعديل الاسم</Btn>}
+                  </td>
+                  <td style={{padding:"12px 14px"}}>
+                    <Btn variant={s.status==="blocked"?"success":"danger"} onClick={()=>toggleBlock(s)} style={{padding:"4px 10px",fontSize:11}}>
+                      {s.status==="blocked"?"✅ إلغاء الحظر":"🚫 حظر"}
+                    </Btn>
                   </td>
                 </tr>
               );
