@@ -114,8 +114,8 @@ const fmtFull = (ts) => new Date(ts).toLocaleString("ar-EG",{hour:"2-digit",minu
 
 // ─── Design Tokens ────────────────────────────────────────────────────────
 const C = {
-  bg:"#080f1d", panel:"#0d1526", card:"#141b2d", border:"#1e2d45",
-  blue:"#2563eb", green:"#22c55e", red:"#ef4444", yellow:"#eab308",
+bg:"#12203a", panel:"#182a4a", card:"#1e335a", border:"#2c4570",
+blue:"#f97316", green:"#22c55e", red:"#ef4444", yellow:"#eab308",
   purple:"#a855f7", muted:"#8899bb", text:"#e2e8f0", dark:"#0a1220",
 };
 const STATUS_CFG = {
